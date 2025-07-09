@@ -33,23 +33,46 @@ class MarketUtils:
         if '.' in symbol or symbol.startswith("^"):
             return symbol
 
-        # Try with .NS (Indian symbol)
+        # For Indian stocks, try .NS suffix first (most common)
         indian_symbol = f"{symbol}.NS"
+        
+        # Simple validation without fetching data to avoid API issues
+        # Return the most likely format for Indian stocks
+        if symbol in ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'ITC', 'LT', 'SBIN', 'BHARTIARTL', 'ASIANPAINT']:
+            return indian_symbol
+        
+        # For other symbols, try a quick validation with minimal data request
         try:
             import yfinance as yf
-            if not yf.Ticker(indian_symbol).history(period="1d").empty:
+            import time
+            
+            # Add a small delay to avoid rate limiting
+            time.sleep(0.1)
+            
+            # Try with .NS (Indian symbol) - use minimal request
+            ticker = yf.Ticker(indian_symbol)
+            info = ticker.info
+            if info and 'symbol' in info:
                 return indian_symbol
-        except:
+        except Exception as e:
+            print(f"Info check failed for {indian_symbol}: {e}")
             pass
 
-        # Try raw symbol (international)
+        # Try raw symbol (international) with minimal request
         try:
             import yfinance as yf
-            if not yf.Ticker(symbol).history(period="1d").empty:
+            import time
+            
+            time.sleep(0.1)
+            ticker = yf.Ticker(symbol)
+            info = ticker.info
+            if info and 'symbol' in info:
                 return symbol
-        except:
+        except Exception as e:
+            print(f"Info check failed for {symbol}: {e}")
             pass
 
-        # Could not find valid symbol
-        print(f"[Error] Symbol '{symbol}' is invalid or not listed on Yahoo Finance.")
-        return None
+        # If validation fails, still return the most likely format
+        # For Indian symbols, default to .NS format
+        print(f"[Warning] Could not validate symbol '{symbol}', defaulting to {indian_symbol}")
+        return indian_symbol

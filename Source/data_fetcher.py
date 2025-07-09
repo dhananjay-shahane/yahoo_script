@@ -54,6 +54,9 @@ class DataFetcher:
             if not yahoo_symbol:
                 return pd.DataFrame()
                 
+            # Add delay to avoid rate limiting
+            time.sleep(0.5)
+            
             stock = yf.Ticker(yahoo_symbol)
 
             if time_period == '5m':
@@ -78,7 +81,26 @@ class DataFetcher:
                         start_date = end_date - timedelta(minutes=30)
                     
                     print(f"Fetching 5-minute data for {yahoo_symbol} from {start_date} to {end_date}")
-                    new_data = stock.history(start=start_date, end=end_date, interval='5m')
+                    
+                    # Try fetching data with retry logic
+                    retry_count = 0
+                    max_retries = 2
+                    new_data = pd.DataFrame()
+                    
+                    while retry_count < max_retries and new_data.empty:
+                        try:
+                            new_data = stock.history(start=start_date, end=end_date, interval='5m')
+                            if not new_data.empty:
+                                break
+                        except Exception as e:
+                            print(f"Attempt {retry_count + 1} failed: {e}")
+                            retry_count += 1
+                            if retry_count < max_retries:
+                                print(f"Retrying in {retry_count + 1} seconds...")
+                                time.sleep(retry_count + 1)
+                    
+                    if new_data.empty:
+                        print(f"No 5-minute data found for {yahoo_symbol} after {max_retries} attempts")
                 else:
                     print(f"Market is closed. Skipping 5-minute data fetch for {yahoo_symbol}")
                     return pd.DataFrame()
@@ -93,11 +115,27 @@ class DataFetcher:
                     start_date = end_date - timedelta(days=30)
                 
                 print(f"Fetching daily data for {yahoo_symbol} from {start_date} to {end_date}")
-                new_data = stock.history(start=start_date, end=end_date, interval='1d')
-
-            if new_data.empty:
-                print(f"No data found for {yahoo_symbol}")
-                return pd.DataFrame()
+                
+                # Try fetching data with retry logic
+                retry_count = 0
+                max_retries = 3
+                new_data = pd.DataFrame()
+                
+                while retry_count < max_retries and new_data.empty:
+                    try:
+                        new_data = stock.history(start=start_date, end=end_date, interval='1d')
+                        if not new_data.empty:
+                            break
+                    except Exception as e:
+                        print(f"Attempt {retry_count + 1} failed: {e}")
+                        retry_count += 1
+                        if retry_count < max_retries:
+                            print(f"Retrying in {retry_count * 2} seconds...")
+                            time.sleep(retry_count * 2)
+                
+                if new_data.empty:
+                    print(f"No data found for {yahoo_symbol} after {max_retries} attempts")
+                    return pd.DataFrame()
 
             new_data = new_data[['Open', 'High', 'Low', 'Close', 'Volume']]
             new_data.index.name = 'datetime'
