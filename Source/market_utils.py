@@ -12,7 +12,7 @@ class MarketUtils:
     
     @staticmethod
     def is_market_open():
-        """Check if Indian stock market is open now (Mon–Fri, 9:00–15:30 IST)"""
+        """Check if Indian stock market is open now (Mon–Fri, 9:15–15:30 IST)"""
         now = datetime.now(INDIA_TZ)
         market_open = datetime.strptime(MARKET_CONFIG['open_time'], "%H:%M").time()
         market_close = datetime.strptime(MARKET_CONFIG['close_time'], "%H:%M").time()

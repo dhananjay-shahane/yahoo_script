@@ -2,6 +2,7 @@ modules = ["python-3.12"]
 
 [nix]
 channel = "stable-24_05"
+packages = ["glibcLocales"]
 
 [workflows]
 runButton = "Run Auto Data Collection"
@@ -14,3 +15,12 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd Source && python auto_run_script.py"
+
+[[workflows.workflow]]
+name = "Run Legacy Yahoo Finance"
+author = 44808585
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd Source && python run_legacy_mode.py"
