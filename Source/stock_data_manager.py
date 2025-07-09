@@ -197,14 +197,71 @@ class StockDataManager:
         """Add a new symbol to the system"""
         print(f"Adding new symbol: {symbol}")
         
+        # Validate symbol first
+        yahoo_symbol = self.market_utils.get_yahoo_symbol(symbol)
+        if not yahoo_symbol:
+            print(f"❌ Invalid symbol: {symbol}")
+            return False
+        
         # Create tables for both time periods
         table_5m = self.db_manager.check_or_create_symbol_table(f"{symbol}_5M")
         table_daily = self.db_manager.check_or_create_symbol_table(f"{symbol}_DAILY")
         
         if table_5m and table_daily:
-            print(f"Successfully added {symbol} to the system")
+            print(f"✅ Successfully added {symbol} to the system")
             # Fetch initial data
             self.update_symbol_data(symbol, '5M')
             self.update_symbol_data(symbol, 'DAILY')
+            return True
         else:
-            print(f"Failed to add {symbol} to the system")
+            print(f"❌ Failed to add {symbol} to the system")
+            return False
+    
+    def add_multiple_symbols(self, symbols):
+        """Add multiple symbols to the system"""
+        print(f"\n🔄 Processing {len(symbols)} symbols...")
+        print("=" * 60)
+        
+        successful_adds = []
+        failed_adds = []
+        
+        for i, symbol in enumerate(symbols, 1):
+            print(f"\n[{i}/{len(symbols)}] Processing symbol: {symbol}")
+            print("-" * 40)
+            
+            try:
+                if self.add_new_symbol(symbol):
+                    successful_adds.append(symbol)
+                else:
+                    failed_adds.append(symbol)
+                    
+            except Exception as e:
+                print(f"❌ Error processing {symbol}: {e}")
+                failed_adds.append(symbol)
+            
+            # Add a small delay between symbols to avoid rate limiting
+            if i < len(symbols):
+                print("⏳ Waiting 2 seconds before next symbol...")
+                time.sleep(2)
+        
+        # Summary
+        print("\n" + "=" * 60)
+        print("MULTIPLE SYMBOL ADDITION SUMMARY")
+        print("=" * 60)
+        
+        if successful_adds:
+            print(f"✅ Successfully added {len(successful_adds)} symbols:")
+            for symbol in successful_adds:
+                print(f"   • {symbol}")
+        
+        if failed_adds:
+            print(f"\n❌ Failed to add {len(failed_adds)} symbols:")
+            for symbol in failed_adds:
+                print(f"   • {symbol}")
+        
+        print(f"\n📊 Total: {len(successful_adds)} successful, {len(failed_adds)} failed")
+        
+        if successful_adds:
+            print(f"\n💡 All successfully added symbols are now available for continuous monitoring!")
+        
+        return successful_adds, failed_adds

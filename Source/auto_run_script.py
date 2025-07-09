@@ -16,10 +16,11 @@ def main():
     print("1. Run once (update all existing tables)")
     print("2. Run Every 5 minutes (default)")
     print("3. Add new symbol")
-    print("4. Exit")
+    print("4. Add multiple symbols")
+    print("5. Exit")
 
     choice = input(
-        "\nEnter your choice (1, 2, 3, or 4) [default: 2]: ").strip()
+        "\nEnter your choice (1, 2, 3, 4, or 5) [default: 2]: ").strip()
 
     # Default to continuous mode if no choice is made
     if not choice:
@@ -82,6 +83,23 @@ def main():
             print("❌ Invalid symbol.")
 
     elif choice == '4':
+        print("\n➕ Adding multiple symbols...")
+        print("Enter symbols separated by commas (e.g., RELIANCE, AAPL, NSEI, TCS)")
+        symbols_input = input("Symbols: ").strip()
+        
+        if symbols_input:
+            # Parse the input and clean up symbols
+            symbols = [s.strip().upper() for s in symbols_input.split(',') if s.strip()]
+            
+            if symbols:
+                print(f"\n📝 Found {len(symbols)} symbols to add: {', '.join(symbols)}")
+                manager.add_multiple_symbols(symbols)
+            else:
+                print("❌ No valid symbols found.")
+        else:
+            print("❌ No symbols entered.")
+
+    elif choice == '5':
         print("👋 Exiting...")
 
     else:
