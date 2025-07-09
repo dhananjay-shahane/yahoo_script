@@ -1,3 +1,4 @@
+
 import psycopg2
 from psycopg2 import Error
 from psycopg2 import Error
@@ -16,8 +17,6 @@ def get_all_symbol_tables():
         print(f"Error getting tables from symbols schema: {e}")
         return []
 
-
-
 def create_db_connection():
     """Create a database connection"""
     try:
@@ -28,7 +27,7 @@ def create_db_connection():
         print(f"Database connection error: {e}")
         return None
 
-def load_existing_schema_tables(schema_name='SYMBOLS'):
+def load_existing_schema_tables(schema_name='symbols'):
     """Load existing table names from specified schema"""
     conn = create_db_connection()
     if not conn:
@@ -44,7 +43,7 @@ def load_existing_schema_tables(schema_name='SYMBOLS'):
                 AND table_type = 'BASE TABLE';
             """
             cur.execute(query, (schema_name,))
-            existing_tables = [row[0].upper() for row in cur.fetchall()]
+            existing_tables = [row[0] for row in cur.fetchall()]
         return existing_tables
     except Error as e:
         print(f"Error loading tables from schema '{schema_name}': {e}")
@@ -52,23 +51,23 @@ def load_existing_schema_tables(schema_name='SYMBOLS'):
     finally:
         conn.close()
 
-def check_or_create_symbol_table(symbol, schema_name='SYMBOLS'):
-    """Check if table exists in schema, create if not"""
+def check_or_create_symbol_table(table_identifier, schema_name='symbols'):
+    """Check if table exists in schema, create if not. table_identifier should include time period like RELIANCE_5M or RELIANCE_DAILY"""
     conn = create_db_connection()
     if not conn:
         return None
     
     try:
         with conn.cursor() as cur:
-            # Ensure schema exists (quoted)
-            cur.execute(f'CREATE SCHEMA IF NOT EXISTS "{schema_name}";')
+            # Ensure schema exists
+            cur.execute(f'CREATE SCHEMA IF NOT EXISTS {schema_name};')
             conn.commit()
             print(f"Ensured schema '{schema_name}' exists.")
             
-            table_name = f'{symbol.upper()}'
-            full_table_name = f'"{schema_name}"."{table_name}"'  # Properly quoted
+            table_name = table_identifier.upper()
+            full_table_name = f'{schema_name}.{table_name}'
             
-            # Check if table exists (exact match, no LOWER)
+            # Check if table exists
             cur.execute("""
                 SELECT EXISTS (
                     SELECT 1 FROM information_schema.tables 
@@ -98,15 +97,22 @@ def check_or_create_symbol_table(symbol, schema_name='SYMBOLS'):
             return full_table_name
                 
     except Exception as e:
-        print(f"Error checking/creating table for {symbol}: {e}")
+        print(f"Error checking/creating table for {table_identifier}: {e}")
         conn.rollback()
         return None
     finally:
         conn.close()
 
+def get_tables_by_time_period(time_period='5M'):
+    """Get all tables for a specific time period (5M or DAILY)"""
+    tables = get_all_symbol_tables()
+    return [table for table in tables if table.endswith(f'_{time_period}')]
+
 # Run and test
 if __name__ == "__main__":
-    existing = load_existing_schema_tables('SYMBOLS')
-    print("Existing tables in SYMBOLS schema:", existing)
+    existing = load_existing_schema_tables('symbols')
+    print("Existing tables in symbols schema:", existing)
 
-    check_or_create_symbol_table("RELIANCE")
+    # Test creating tables for different time periods
+    check_or_create_symbol_table("RELIANCE_5M")
+    check_or_create_symbol_table("RELIANCE_DAILY")
