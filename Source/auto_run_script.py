@@ -29,17 +29,6 @@ def main():
             print("Invalid input. Using default intervals.")
             manager.run_continuous_updates()
     elif choice == '3':
-        # Test connection first
-        print("Testing database connection...")
-        test_conn = manager.db_manager.create_connection()
-        if not test_conn:
-            print("❌ Cannot connect to database. Please check your connection.")
-            print("💡 Run 'python test_connection.py' to diagnose the issue.")
-            return
-        else:
-            test_conn.close()
-            print("✅ Database connection successful")
-        
         symbol = input("Enter symbol to add (e.g., RELIANCE, AAPL, NSEI): ").strip().upper()
         if symbol:
             manager.add_new_symbol(symbol)

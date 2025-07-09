@@ -8,7 +8,6 @@ from psycopg2 import Error
 from sqlalchemy import create_engine, inspect
 import pandas as pd
 from config import DB_URL, SCHEMA_NAME
-from connection_pool import db_pool
 
 
 class DatabaseManager:
@@ -19,67 +18,29 @@ class DatabaseManager:
         self.schema_name = SCHEMA_NAME
     
     def create_connection(self):
-        """Create a database connection with retry logic and SSL fallback"""
-        max_retries = 2
-        retry_delay = 1
+        """Create a database connection with retry logic"""
+        max_retries = 3
+        retry_delay = 2
         
-        # Try connection pooling URL first (recommended for external databases)
-        pool_url = self.db_url.replace('.oregon-postgres.render.com', '-pooler.oregon-postgres.render.com')
-        
-        # Try different connection strategies
-        connection_configs = [
-            {'url': pool_url, 'sslmode': 'require', 'description': 'Pooled connection with SSL'},
-            {'url': self.db_url, 'sslmode': 'require', 'description': 'Direct connection with SSL'},
-            {'url': pool_url, 'sslmode': 'prefer', 'description': 'Pooled connection SSL preferred'},
-            {'url': self.db_url, 'sslmode': 'prefer', 'description': 'Direct connection SSL preferred'}
-        ]
-        
-        for config in connection_configs:
-            print(f"Trying: {config['description']}")
-            
-            for attempt in range(max_retries):
-                try:
-                    import urllib.parse as urlparse
-                    parsed = urlparse.urlparse(config['url'])
-                    
-                    conn = psycopg2.connect(
-                        host=parsed.hostname,
-                        port=parsed.port or 5432,
-                        user=parsed.username,
-                        password=parsed.password,
-                        database=parsed.path[1:] if parsed.path else 'postgres',
-                        sslmode=config['sslmode'],
-                        connect_timeout=15,
-                        keepalives=1,
-                        keepalives_idle=30,
-                        keepalives_interval=5,
-                        keepalives_count=3,
-                        application_name='stock_data_app'
-                    )
-                    print(f"✅ Successfully connected using: {config['description']}")
-                    return conn
-                    
-                except Exception as e:
-                    print(f"❌ Attempt {attempt + 1} failed: {str(e)[:100]}...")
-                    if attempt < max_retries - 1:
-                        import time
-                        time.sleep(retry_delay)
-        
-        print("\n❌ All connection strategies failed")
-        print("💡 Consider using Replit's built-in PostgreSQL database for better reliability")
-        return None
-    
-    def get_pooled_connection(self):
-        """Get connection from pool (preferred method)"""
-        conn = db_pool.get_connection()
-        if conn:
-            return conn
-        # Fallback to direct connection
-        return self.create_connection()
-    
-    def return_pooled_connection(self, conn):
-        """Return connection to pool"""
-        db_pool.return_connection(conn)
+        for attempt in range(max_retries):
+            try:
+                # Add SSL settings to handle connection issues
+                conn = psycopg2.connect(
+                    self.db_url,
+                    sslmode='require',
+                    connect_timeout=30
+                )
+                return conn
+            except Exception as e:
+                print(f"Database connection attempt {attempt + 1} failed: {e}")
+                if attempt < max_retries - 1:
+                    print(f"Retrying in {retry_delay} seconds...")
+                    import time
+                    time.sleep(retry_delay)
+                    retry_delay *= 2  # Exponential backoff
+                else:
+                    print(f"All {max_retries} connection attempts failed")
+                    return None
     
     def get_all_symbol_tables(self):
         """Get all table names in the symbols schema"""
@@ -149,22 +110,13 @@ class DatabaseManager:
         finally:
             conn.close()
     
-    def validate_connection(self, conn):
-        """Validate that connection is still alive"""
-        try:
-            with conn.cursor() as cur:
-                cur.execute("SELECT 1")
-                return True
-        except:
-            return False
-    
     def save_data_to_db(self, table_name, df):
         """Save data to the symbol table, avoiding duplicates"""
         if df.empty:
             return
         
         conn = self.create_connection()
-        if conn and self.validate_connection(conn):
+        if conn:
             try:
                 cur = conn.cursor()
                 
@@ -201,7 +153,7 @@ class DatabaseManager:
     def get_last_datetime(self, table_name):
         """Get the last datetime from a table"""
         conn = self.create_connection()
-        if conn and self.validate_connection(conn):
+        if conn:
             try:
                 cur = conn.cursor()
                 cur.execute(f"SELECT MAX(datetime) FROM {table_name}")
@@ -216,7 +168,7 @@ class DatabaseManager:
     def display_latest_data(self, table_name, symbol, limit=10):
         """Display the latest data for a symbol"""
         conn = self.create_connection()
-        if conn and self.validate_connection(conn):
+        if conn:
             try:
                 cur = conn.cursor()
                 
