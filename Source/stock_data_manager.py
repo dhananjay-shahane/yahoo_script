@@ -44,6 +44,8 @@ class StockDataManager:
         # Skip 5-minute updates if market is closed
         if time_period == '5M' and not self.market_utils.is_market_open():
             print(f"🔒 Market closed - skipping 5-minute data for {symbol}")
+            # Still show existing data
+            self.db_manager.display_latest_data(full_table_name, symbol, 3)
             return
         
         # Get last datetime and fetch new data
@@ -53,14 +55,24 @@ class StockDataManager:
         else:
             print(f"📅 No existing data - fetching initial data")
         
+        # Fetch new data
+        print(f"🔄 Fetching {time_period} data for {symbol}...")
         new_data = self.data_fetcher.fetch_data_by_period(symbol, interval, last_datetime)
         
         if not new_data.empty:
             print(f"✅ Found {len(new_data)} new records")
-            self.db_manager.save_data_to_db(full_table_name, new_data)
-            self.db_manager.display_latest_data(full_table_name, symbol, 3)
+            
+            # Save to database
+            rows_inserted = self.db_manager.save_data_to_db(full_table_name, new_data)
+            if rows_inserted > 0:
+                print(f"💾 Saved {rows_inserted} new records to database")
+            
+            # Display latest data
+            self.db_manager.display_latest_data(full_table_name, symbol, 5)
         else:
             print(f"ℹ️  No new data available for {symbol}")
+            # Still show existing data if any
+            self.db_manager.display_latest_data(full_table_name, symbol, 3)
         
         print(f"✅ Completed {symbol} ({time_period})")
     
@@ -144,12 +156,42 @@ class StockDataManager:
             print("="*80)
     
     def update_all_tables(self):
-        """Update all existing tables once"""
-        print("Updating all 5-minute tables...")
-        self.update_tables_by_period('5M')
+        """Update all existing tables once with detailed progress"""
+        print("\n" + "="*80)
+        print("RUNNING SINGLE UPDATE FOR ALL TABLES")
+        print("="*80)
         
-        print("\nUpdating all daily tables...")
+        # Get current time and market status
+        current_time = datetime.now(INDIA_TZ)
+        is_market_open = self.market_utils.is_market_open()
+        
+        print(f"Current time: {current_time.strftime('%Y-%m-%d %H:%M:%S IST')}")
+        print(f"Market status: {'OPEN' if is_market_open else 'CLOSED'}")
+        print("="*80)
+        
+        # Update 5-minute tables
+        tables_5m = self.db_manager.get_tables_by_time_period('5M')
+        print(f"\n📈 Updating {len(tables_5m)} 5-minute tables...")
+        print("-" * 60)
+        
+        if is_market_open:
+            self.update_tables_by_period('5M')
+        else:
+            print("🔒 Market is closed - skipping 5-minute data updates")
+            for table in tables_5m:
+                symbol = table[:-3] if table.endswith('_5M') else table
+                print(f"   ⏸️  {symbol}: Skipped (market closed)")
+        
+        # Update daily tables
+        tables_daily = self.db_manager.get_tables_by_time_period('DAILY')
+        print(f"\n📊 Updating {len(tables_daily)} daily tables...")
+        print("-" * 60)
+        
         self.update_tables_by_period('DAILY')
+        
+        print("\n" + "="*80)
+        print("SINGLE UPDATE COMPLETED")
+        print("="*80)
     
     def add_new_symbol(self, symbol):
         """Add a new symbol to the system"""

@@ -28,6 +28,14 @@ def main():
     if choice == '1':
         print("\n🔄 Running single update for all tables...")
         manager.update_all_tables()
+        
+        # Ask if user wants to continue with 5-minute updates
+        continue_choice = input("\nWould you like to continue with 5-minute updates? (y/n) [default: n]: ").strip().lower()
+        if continue_choice in ['y', 'yes']:
+            print("\n🔄 Starting 5-minute continuous updates...")
+            print("⚠️  Press Ctrl+C to stop\n")
+            time.sleep(2)
+            manager.run_continuous_updates(300, 3600)  # 5 min for intraday, 1 hour for daily
 
     elif choice == '2':
         print("\n🔄 Setting up continuous updates...")

@@ -119,7 +119,7 @@ class DatabaseManager:
     def save_data_to_db(self, table_name, df):
         """Save data to the symbol table, avoiding duplicates"""
         if df.empty:
-            return
+            return 0
 
         conn = self.create_connection()
         if conn:
@@ -146,15 +146,20 @@ class DatabaseManager:
                         ON CONFLICT (datetime) DO NOTHING
                     """, new_records)
                     conn.commit()
-                    print(f"Inserted {cur.rowcount} new records into {table_name}")
+                    rows_inserted = cur.rowcount
+                    print(f"💾 Inserted {rows_inserted} new records into {table_name}")
+                    return rows_inserted
                 else:
                     print(f"No new records to insert for {table_name}")
+                    return 0
 
             except Exception as e:
-                print(f"Error saving data to {table_name}: {e}")
+                print(f"❌ Error saving data to {table_name}: {e}")
                 conn.rollback()
+                return 0
             finally:
                 conn.close()
+        return 0
 
     def get_last_datetime(self, table_name):
         """Get the last datetime from a table"""
