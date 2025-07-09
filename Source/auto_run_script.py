@@ -23,7 +23,8 @@ def main():
 
     # Default to continuous mode if no choice is made
     if not choice:
-        choice = '2'
+        choice = '2'   
+        
 
     if choice == '1':
         print("\n🔄 Running single update for all tables...")
