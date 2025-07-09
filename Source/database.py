@@ -18,29 +18,50 @@ class DatabaseManager:
         self.schema_name = SCHEMA_NAME
     
     def create_connection(self):
-        """Create a database connection with retry logic"""
+        """Create a database connection with retry logic and SSL fallback"""
         max_retries = 3
         retry_delay = 2
         
-        for attempt in range(max_retries):
-            try:
-                # Add SSL settings to handle connection issues
-                conn = psycopg2.connect(
-                    self.db_url,
-                    sslmode='require',
-                    connect_timeout=30
-                )
-                return conn
-            except Exception as e:
-                print(f"Database connection attempt {attempt + 1} failed: {e}")
-                if attempt < max_retries - 1:
-                    print(f"Retrying in {retry_delay} seconds...")
-                    import time
-                    time.sleep(retry_delay)
-                    retry_delay *= 2  # Exponential backoff
-                else:
-                    print(f"All {max_retries} connection attempts failed")
-                    return None
+        # Try different SSL modes in order of preference
+        ssl_modes = ['require', 'prefer', 'allow']
+        
+        for ssl_mode in ssl_modes:
+            print(f"Trying SSL mode: {ssl_mode}")
+            
+            for attempt in range(max_retries):
+                try:
+                    # Parse URL to add connection parameters
+                    import urllib.parse as urlparse
+                    parsed = urlparse.urlparse(self.db_url)
+                    
+                    conn = psycopg2.connect(
+                        host=parsed.hostname,
+                        port=parsed.port,
+                        user=parsed.username,
+                        password=parsed.password,
+                        database=parsed.path[1:],  # Remove leading slash
+                        sslmode=ssl_mode,
+                        connect_timeout=30,
+                        keepalives=1,
+                        keepalives_idle=30,
+                        keepalives_interval=10,
+                        keepalives_count=5
+                    )
+                    print(f"Successfully connected with SSL mode: {ssl_mode}")
+                    return conn
+                    
+                except Exception as e:
+                    print(f"Connection attempt {attempt + 1} with {ssl_mode} failed: {e}")
+                    if attempt < max_retries - 1:
+                        print(f"Retrying in {retry_delay} seconds...")
+                        import time
+                        time.sleep(retry_delay)
+                    else:
+                        print(f"All {max_retries} attempts failed for {ssl_mode}")
+                        break
+        
+        print("All SSL modes and retry attempts failed")
+        return None
     
     def get_all_symbol_tables(self):
         """Get all table names in the symbols schema"""
@@ -110,13 +131,22 @@ class DatabaseManager:
         finally:
             conn.close()
     
+    def validate_connection(self, conn):
+        """Validate that connection is still alive"""
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1")
+                return True
+        except:
+            return False
+    
     def save_data_to_db(self, table_name, df):
         """Save data to the symbol table, avoiding duplicates"""
         if df.empty:
             return
         
         conn = self.create_connection()
-        if conn:
+        if conn and self.validate_connection(conn):
             try:
                 cur = conn.cursor()
                 
@@ -153,7 +183,7 @@ class DatabaseManager:
     def get_last_datetime(self, table_name):
         """Get the last datetime from a table"""
         conn = self.create_connection()
-        if conn:
+        if conn and self.validate_connection(conn):
             try:
                 cur = conn.cursor()
                 cur.execute(f"SELECT MAX(datetime) FROM {table_name}")
@@ -168,7 +198,7 @@ class DatabaseManager:
     def display_latest_data(self, table_name, symbol, limit=10):
         """Display the latest data for a symbol"""
         conn = self.create_connection()
-        if conn:
+        if conn and self.validate_connection(conn):
             try:
                 cur = conn.cursor()
                 
