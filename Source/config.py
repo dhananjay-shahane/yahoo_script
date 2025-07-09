@@ -18,7 +18,7 @@ DB_CONFIG = {
 
 # Database URL and schema for other modules
 DB_URL = "postgresql://kotak_trading_db_user:JRUlk8RutdgVcErSiUXqljDUdK8sBsYO@dpg-d1cjd66r433s73fsp4n0-a.oregon-postgres.render.com/kotak_trading_db"
-SCHEMA_NAME = "symbols"
+SCHEMA_NAME = "SYMBOLS"
 
 # Market configuration
 MARKET_CONFIG = {
@@ -30,16 +30,16 @@ MARKET_CONFIG = {
 # Data collection configuration
 CONFIG = {
     'intraday': {
-        'fetch_interval': 300,        # 5 minutes (in seconds)
-        'request_period': '7d',       # Request 7 days of historical data
-        'data_interval': '5m',        # 5-minute interval data
+        'fetch_interval': 300,  # 5 minutes (in seconds)
+        'request_period': '7d',  # Request 7 days of historical data
+        'data_interval': '5m',  # 5-minute interval data
         'table_suffix': '_intraday',
         'display_name': 'Intraday (5m)'
     },
     'daily': {
-        'fetch_interval': 86400,      # 24 hours (in seconds)
-        'request_period': '1mo',      # Request 1 month of historical data
-        'data_interval': '1d',        # Daily interval data
+        'fetch_interval': 86400,  # 24 hours (in seconds)
+        'request_period': '1mo',  # Request 1 month of historical data
+        'data_interval': '1d',  # Daily interval data
         'table_suffix': '_daily',
         'display_name': 'Daily'
     }
@@ -53,7 +53,7 @@ DATA_CONFIG = {
         'display_name': '5-minute'
     },
     'DAILY': {
-        'interval': '1d', 
+        'interval': '1d',
         'table_suffix': '_DAILY',
         'display_name': 'Daily'
     }
@@ -61,7 +61,7 @@ DATA_CONFIG = {
 
 # Indian indices mapping
 INDIAN_INDICES = {
-    'NSEI': '^NSEI',      # Nifty 50
-    'BSESN': '^BSESN',    # Sensex
-    'NSEBANK': '^NSEBANK' # Nifty Bank
+    'NSEI': '^NSEI',  # Nifty 50
+    'BSESN': '^BSESN',  # Sensex
+    'NSEBANK': '^NSEBANK'  # Nifty Bank
 }
