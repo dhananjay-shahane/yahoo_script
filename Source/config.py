@@ -16,6 +16,10 @@ DB_CONFIG = {
     'password': 'yourpassword'
 }
 
+# Database URL and schema for other modules
+DB_URL = "postgresql://kotak_trading_db_user:JRUlk8RutdgVcErSiUXqljDUdK8sBsYO@dpg-d1cjd66r433s73fsp4n0-a.oregon-postgres.render.com/kotak_trading_db"
+SCHEMA_NAME = "symbols"
+
 # Market configuration
 MARKET_CONFIG = {
     'open_time': '09:15',

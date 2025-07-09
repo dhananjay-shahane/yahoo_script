@@ -24,3 +24,12 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd Source && python run_legacy_mode.py"
+
+[[workflows.workflow]]
+name = "Run Yahoo Finance Standalone"
+author = 44808585
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd Source && python run_yahoo_standalone.py"
