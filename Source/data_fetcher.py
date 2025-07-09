@@ -142,10 +142,10 @@ class DataFetcher:
                         print(f"❌ Daily attempt {retry_count + 1} failed: {e}")
 
                     retry_count += 1
-                        if retry_count < max_retries:
-                            wait_time = 3 * retry_count  # Linear backoff for daily data
-                            print(f"⏳ Retrying daily fetch in {wait_time} seconds...")
-                            time.sleep(wait_time)
+                    if retry_count < max_retries:
+                        wait_time = 3 * retry_count  # Linear backoff for daily data
+                        print(f"⏳ Retrying daily fetch in {wait_time} seconds...")
+                        time.sleep(wait_time)
 
                 if new_data.empty:
                     print(f"❌ No daily data found for {yahoo_symbol} after {max_retries} attempts")
