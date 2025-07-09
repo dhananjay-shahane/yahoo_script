@@ -1,7 +1,6 @@
 
 import psycopg2
 from psycopg2 import Error
-from psycopg2 import Error
 from sqlalchemy import create_engine, inspect
 # Replace with your actual PostgreSQL connection URL
 DB_URL = "postgresql://kotak_trading_db_user:JRUlk8RutdgVcErSiUXqljDUdK8sBsYO@dpg-d1cjd66r433s73fsp4n0-a.oregon-postgres.render.com/kotak_trading_db"
