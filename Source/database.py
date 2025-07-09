@@ -102,6 +102,13 @@ class DatabaseManager:
 
                 return full_table_name
 
+        except psycopg2.errors.DuplicateTable:
+            # Handle duplicate table error specifically
+            conn.rollback()
+            table_name = table_identifier.upper()
+            full_table_name = f'{self.schema_name}.{table_name}'
+            print(f"Table {full_table_name} already exists")
+            return full_table_name
         except Exception as e:
             print(f"Error checking/creating table for {table_identifier}: {e}")
             conn.rollback()
