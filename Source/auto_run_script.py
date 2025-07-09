@@ -13,8 +13,9 @@ def main():
     print("Stock Data Auto-Update Script")
     print("1. Run once (update all existing tables)")
     print("2. Run continuously")
+    print("3. Add new symbol")
 
-    choice = input("Enter your choice (1 or 2): ").strip()
+    choice = input("Enter your choice (1, 2, or 3): ").strip()
 
     if choice == '1':
         manager.update_all_tables()
@@ -27,6 +28,12 @@ def main():
         except ValueError:
             print("Invalid input. Using default intervals.")
             manager.run_continuous_updates()
+    elif choice == '3':
+        symbol = input("Enter symbol to add (e.g., RELIANCE, AAPL, NSEI): ").strip().upper()
+        if symbol:
+            manager.add_new_symbol(symbol)
+        else:
+            print("Invalid symbol.")
     else:
         print("Invalid choice. Running once...")
         manager.update_all_tables()

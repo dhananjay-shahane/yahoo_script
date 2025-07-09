@@ -80,7 +80,7 @@ class StockDataManager:
     
     def run_continuous_updates(self, fetching_interval_5m=300, fetching_interval_daily=3600):
         """Run continuous updates for both 5-minute and daily data"""
-        last_daily_update = datetime.min
+        last_daily_update = datetime.min.replace(tzinfo=INDIA_TZ)
         
         try:
             print("Starting continuous data updates...")

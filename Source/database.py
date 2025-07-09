@@ -18,13 +18,29 @@ class DatabaseManager:
         self.schema_name = SCHEMA_NAME
     
     def create_connection(self):
-        """Create a database connection"""
-        try:
-            conn = psycopg2.connect(self.db_url)
-            return conn
-        except Exception as e:
-            print(f"Database connection error: {e}")
-            return None
+        """Create a database connection with retry logic"""
+        max_retries = 3
+        retry_delay = 2
+        
+        for attempt in range(max_retries):
+            try:
+                # Add SSL settings to handle connection issues
+                conn = psycopg2.connect(
+                    self.db_url,
+                    sslmode='require',
+                    connect_timeout=30
+                )
+                return conn
+            except Exception as e:
+                print(f"Database connection attempt {attempt + 1} failed: {e}")
+                if attempt < max_retries - 1:
+                    print(f"Retrying in {retry_delay} seconds...")
+                    import time
+                    time.sleep(retry_delay)
+                    retry_delay *= 2  # Exponential backoff
+                else:
+                    print(f"All {max_retries} connection attempts failed")
+                    return None
     
     def get_all_symbol_tables(self):
         """Get all table names in the symbols schema"""
@@ -66,7 +82,8 @@ class DatabaseManager:
                     );
                 """, (self.schema_name, table_name))
                 
-                if not cur.fetchone()[0]:
+                result = cur.fetchone()
+                if result is not None and not result[0]:
                     # Create table if it doesn't exist
                     cur.execute(f"""
                         CREATE TABLE {full_table_name} (
