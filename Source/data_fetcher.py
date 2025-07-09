@@ -138,10 +138,10 @@ class DataFetcher:
                             break
                         else:
                             print(f"⚠️  No daily data returned on attempt {retry_count + 1}")
-                        except Exception as e:
-                            print(f"❌ Daily attempt {retry_count + 1} failed: {e}")
+                    except Exception as e:
+                        print(f"❌ Daily attempt {retry_count + 1} failed: {e}")
 
-                        retry_count += 1
+                    retry_count += 1
                         if retry_count < max_retries:
                             wait_time = 3 * retry_count  # Linear backoff for daily data
                             print(f"⏳ Retrying daily fetch in {wait_time} seconds...")
