@@ -5,7 +5,7 @@ channel = "stable-24_05"
 packages = ["glibcLocales"]
 
 [workflows]
-runButton = "Run Auto Data Collection"
+runButton = "Run Continuous Data Collection"
 
 [[workflows.workflow]]
 name = "Run Auto Data Collection"
@@ -33,3 +33,12 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd Source && python run_yahoo_standalone.py"
+
+[[workflows.workflow]]
+name = "Run Continuous Data Collection"
+author = 44808585
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd Source && python auto_run_script.py"

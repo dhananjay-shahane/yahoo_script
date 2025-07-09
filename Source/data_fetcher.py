@@ -52,12 +52,14 @@ class DataFetcher:
         try:
             yahoo_symbol = self.market_utils.get_yahoo_symbol(symbol)
             if not yahoo_symbol:
+                print(f"Unable to find valid Yahoo symbol for {symbol}")
                 return pd.DataFrame()
                 
             # Add delay to avoid rate limiting
-            time.sleep(0.5)
+            time.sleep(1)  # Increased delay
             
             stock = yf.Ticker(yahoo_symbol)
+            print(f"Fetching data for {yahoo_symbol} (original: {symbol})")
 
             if time_period == '5m':
                 if self.market_utils.is_market_open():
@@ -84,20 +86,26 @@ class DataFetcher:
                     
                     # Try fetching data with retry logic
                     retry_count = 0
-                    max_retries = 2
+                    max_retries = 3
                     new_data = pd.DataFrame()
                     
                     while retry_count < max_retries and new_data.empty:
                         try:
+                            print(f"Fetching attempt {retry_count + 1} for {yahoo_symbol}")
                             new_data = stock.history(start=start_date, end=end_date, interval='5m')
                             if not new_data.empty:
+                                print(f"Successfully fetched {len(new_data)} records")
                                 break
+                            else:
+                                print(f"No data returned on attempt {retry_count + 1}")
                         except Exception as e:
                             print(f"Attempt {retry_count + 1} failed: {e}")
-                            retry_count += 1
-                            if retry_count < max_retries:
-                                print(f"Retrying in {retry_count + 1} seconds...")
-                                time.sleep(retry_count + 1)
+                            
+                        retry_count += 1
+                        if retry_count < max_retries:
+                            wait_time = 2 ** retry_count  # Exponential backoff
+                            print(f"Retrying in {wait_time} seconds...")
+                            time.sleep(wait_time)
                     
                     if new_data.empty:
                         print(f"No 5-minute data found for {yahoo_symbol} after {max_retries} attempts")
@@ -123,15 +131,21 @@ class DataFetcher:
                 
                 while retry_count < max_retries and new_data.empty:
                     try:
+                        print(f"Daily data attempt {retry_count + 1} for {yahoo_symbol}")
                         new_data = stock.history(start=start_date, end=end_date, interval='1d')
                         if not new_data.empty:
+                            print(f"Successfully fetched {len(new_data)} daily records")
                             break
+                        else:
+                            print(f"No daily data returned on attempt {retry_count + 1}")
                     except Exception as e:
-                        print(f"Attempt {retry_count + 1} failed: {e}")
-                        retry_count += 1
-                        if retry_count < max_retries:
-                            print(f"Retrying in {retry_count * 2} seconds...")
-                            time.sleep(retry_count * 2)
+                        print(f"Daily data attempt {retry_count + 1} failed: {e}")
+                        
+                    retry_count += 1
+                    if retry_count < max_retries:
+                        wait_time = 3 * retry_count  # Linear backoff for daily data
+                        print(f"Retrying daily fetch in {wait_time} seconds...")
+                        time.sleep(wait_time)
                 
                 if new_data.empty:
                     print(f"No data found for {yahoo_symbol} after {max_retries} attempts")
