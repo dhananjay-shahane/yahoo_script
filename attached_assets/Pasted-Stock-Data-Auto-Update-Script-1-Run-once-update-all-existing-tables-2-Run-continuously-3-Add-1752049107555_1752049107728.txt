@@ -1,0 +1,42 @@
+Stock Data Auto-Update Script
+1. Run once (update all existing tables)
+2. Run continuously
+3. Add new symbol
+Enter your choice (1, 2, or 3): 3
+Testing database connection...
+Trying SSL mode: require
+Connection attempt 1 with require failed: connection to server at "dpg-d1cjd1r433s73fsp4n0-a.oregon-postgres.render.com" (35.227.164.209), port 5432 failed: SSL connection has been closed unexpectedly
+
+Retrying in 2 seconds...
+Connection attempt 2 with require failed: connection to server at "dpg-d1cjd1r433s73fsp4n0-a.oregon-postgres.render.com" (35.227.164.209), port 5432 failed: SSL connection has been closed unexpectedly
+
+Retrying in 2 seconds...
+Connection attempt 3 with require failed: connection to server at "dpg-d1cjd1r433s73fsp4n0-a.oregon-postgres.render.com" (35.227.164.209), port 5432 failed: SSL connection has been closed unexpectedly
+
+All 3 attempts failed for require
+Trying SSL mode: prefer
+Connection attempt 1 with prefer failed: connection to server at "dpg-d1cjd1r433s73fsp4n0-a.oregon-postgres.render.com" (35.227.164.209), port 5432 failed: SSL connection has been closed unexpectedly
+
+Retrying in 2 seconds...
+Connection attempt 2 with prefer failed: connection to server at "dpg-d1cjd1r433s73fsp4n0-a.oregon-postgres.render.com" (35.227.164.209), port 5432 failed: SSL connection has been closed unexpectedly
+
+Retrying in 2 seconds...
+Connection attempt 3 with prefer failed: connection to server at "dpg-d1cjd1r433s73fsp4n0-a.oregon-postgres.render.com" (35.227.164.209), port 5432 failed: SSL connection has been closed unexpectedly
+
+All 3 attempts failed for prefer
+Trying SSL mode: allow
+Connection attempt 1 with allow failed: connection to server at "dpg-d1cjd1r433s73fsp4n0-a.oregon-postgres.render.com" (35.227.164.209), port 5432 failed: FATAL:  SSL/TLS required
+connection to server at "dpg-d1cjd1r433s73fsp4n0-a.oregon-postgres.render.com" (35.227.164.209), port 5432 failed: SSL connection has been closed unexpectedly
+
+Retrying in 2 seconds...
+Connection attempt 2 with allow failed: connection to server at "dpg-d1cjd1r433s73fsp4n0-a.oregon-postgres.render.com" (35.227.164.209), port 5432 failed: FATAL:  SSL/TLS required
+connection to server at "dpg-d1cjd1r433s73fsp4n0-a.oregon-postgres.render.com" (35.227.164.209), port 5432 failed: SSL connection has been closed unexpectedly
+
+Retrying in 2 seconds...
+Connection attempt 3 with allow failed: connection to server at "dpg-d1cjd1r433s73fsp4n0-a.oregon-postgres.render.com" (35.227.164.209), port 5432 failed: FATAL:  SSL/TLS required
+connection to server at "dpg-d1cjd1r433s73fsp4n0-a.oregon-postgres.render.com" (35.227.164.209), port 5432 failed: SSL connection has been closed unexpectedly
+
+All 3 attempts failed for allow
+All SSL modes and retry attempts failed
+❌ Cannot connect to database. Please check your connection.
+💡 Run 'python test_connection.py' to diagnose the issue.
