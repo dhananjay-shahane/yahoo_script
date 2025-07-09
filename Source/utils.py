@@ -75,7 +75,8 @@ def check_or_create_symbol_table(table_identifier, schema_name='symbols'):
                 );
             """, (schema_name, table_name))
             
-            if not cur.fetchone()[0]:
+            result = cur.fetchone()
+            if result is not None and not result[0]:
                 # Create table if it doesn't exist
                 cur.execute(f"""
                     CREATE TABLE {full_table_name} (

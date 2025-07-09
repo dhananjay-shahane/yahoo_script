@@ -6,6 +6,7 @@ Data fetching operations from Yahoo Finance
 import yfinance as yf
 import pandas as pd
 from datetime import datetime, timedelta
+import time
 from config import INDIA_TZ, DATA_CONFIG
 from market_utils import MarketUtils
 
@@ -13,8 +14,38 @@ from market_utils import MarketUtils
 class DataFetcher:
     """Handles data fetching from Yahoo Finance"""
     
+    def process_market_data(self, df):
+        """
+        Process market data by:
+        1. Converting timestamps to IST (UTC+5:30)
+        2. Reversing row order so most recent is last
+        
+        Args:
+            df: DataFrame with 'datetime' column containing UTC timestamps
+            
+        Returns:
+            Processed DataFrame
+        """
+        if df.empty:
+            return df
+            
+        # Make a copy to avoid modifying original
+        df = df.copy()
+        
+        # Convert to datetime if not already
+        df['datetime'] = pd.to_datetime(df['datetime'])
+        
+        # Convert UTC to IST (UTC+5:30)
+        df['datetime'] = df['datetime'] + timedelta(hours=5, minutes=30)
+        
+        # Reverse row order so most recent is last
+        df = df.iloc[::-1].reset_index(drop=True)
+        
+        return df
+    
     def __init__(self):
         self.market_utils = MarketUtils()
+        self.last_request_time = {}  # Track last request time per symbol for throttling
     
     def fetch_data_by_period(self, symbol, time_period='5m', last_datetime=None):
         """Fetch market data for a symbol based on time period"""
@@ -27,6 +58,17 @@ class DataFetcher:
 
             if time_period == '5m':
                 if self.market_utils.is_market_open():
+                    # Check if we need to throttle requests (minimum 60 seconds between requests per symbol)
+                    current_time = time.time()
+                    if symbol in self.last_request_time:
+                        time_since_last = current_time - self.last_request_time[symbol]
+                        if time_since_last < 60:  # 60 seconds minimum between requests
+                            print(f"Throttling request for {symbol}. Last request was {time_since_last:.1f} seconds ago")
+                            return pd.DataFrame()
+                    
+                    # Update last request time
+                    self.last_request_time[symbol] = current_time
+                    
                     # Fetch 5-minute data during market hours
                     if last_datetime:
                         start_date = last_datetime
@@ -64,6 +106,9 @@ class DataFetcher:
             # Filter to only include data after last_datetime if provided
             if last_datetime:
                 new_data = new_data[new_data['datetime'] > last_datetime]
+            
+            # Process the market data (convert to IST and reverse order)
+            new_data = self.process_market_data(new_data)
                 
             return new_data
 
