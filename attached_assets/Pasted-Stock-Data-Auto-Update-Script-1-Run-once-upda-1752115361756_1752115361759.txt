@@ -1,0 +1,165 @@
+Stock Data Auto-Update Script
+==================================================
+1. Run once (update all existing tables)
+2. Run Every 5 minutes (default)
+3. Add new symbol
+4. Add multiple symbols
+5. Exit
+
+Enter your choice (1, 2, 3, 4, or 5) [default: 2]: 4
+
+➕ Adding multiple symbols...
+Enter symbols separated by commas (e.g., RELIANCE, AAPL, NSEI, TCS)
+Symbols: RELIANCE, TCS, INFY, HDFCBANK, ICICIBANK, SBIN, LT, AXISBANK, BHARTIARTL, ITC
+
+📝 Found 10 symbols to add: RELIANCE, TCS, INFY, HDFCBANK, ICICIBANK, SBIN, LT, AXISBANK, BHARTIARTL, ITC
+
+🔄 Processing 10 symbols...
+============================================================
+
+[1/10] Processing symbol: RELIANCE
+----------------------------------------
+Adding new symbol: RELIANCE
+Failed to get ticker 'RELIANCE.NS' reason: Expecting value: line 1 column 1 (char 0)
+RELIANCE.NS: No price data found, symbol may be delisted (period=1d)
+Failed to get ticker 'RELIANCE.BO' reason: Expecting value: line 1 column 1 (char 0)
+RELIANCE.BO: No price data found, symbol may be delisted (period=1d)
+Failed to get ticker 'RELIANCE' reason: Expecting value: line 1 column 1 (char 0)
+RELIANCE: No price data found, symbol may be delisted (period=1d)
+[Error] Symbol 'RELIANCE' is invalid or not listed on Yahoo Finance.
+❌ Invalid symbol: RELIANCE
+⏳ Waiting 2 seconds before next symbol...
+
+[2/10] Processing symbol: TCS
+----------------------------------------
+Adding new symbol: TCS
+Failed to get ticker 'TCS.NS' reason: Expecting value: line 1 column 1 (char 0)
+TCS.NS: No price data found, symbol may be delisted (period=1d)
+Failed to get ticker 'TCS.BO' reason: Expecting value: line 1 column 1 (char 0)
+TCS.BO: No price data found, symbol may be delisted (period=1d)
+Failed to get ticker 'TCS' reason: Expecting value: line 1 column 1 (char 0)
+TCS: No price data found, symbol may be delisted (period=1d)
+[Error] Symbol 'TCS' is invalid or not listed on Yahoo Finance.
+❌ Invalid symbol: TCS
+⏳ Waiting 2 seconds before next symbol...
+
+[3/10] Processing symbol: INFY
+----------------------------------------
+Adding new symbol: INFY
+Failed to get ticker 'INFY.NS' reason: Expecting value: line 1 column 1 (char 0)
+INFY.NS: No price data found, symbol may be delisted (period=1d)
+Failed to get ticker 'INFY.BO' reason: Expecting value: line 1 column 1 (char 0)
+INFY.BO: No price data found, symbol may be delisted (period=1d)
+Failed to get ticker 'INFY' reason: Expecting value: line 1 column 1 (char 0)
+INFY: No price data found, symbol may be delisted (period=1d)
+[Error] Symbol 'INFY' is invalid or not listed on Yahoo Finance.
+❌ Invalid symbol: INFY
+⏳ Waiting 2 seconds before next symbol...
+
+[4/10] Processing symbol: HDFCBANK
+----------------------------------------
+Adding new symbol: HDFCBANK
+Failed to get ticker 'HDFCBANK.NS' reason: Expecting value: line 1 column 1 (char 0)
+HDFCBANK.NS: No price data found, symbol may be delisted (period=1d)
+Failed to get ticker 'HDFCBANK.BO' reason: Expecting value: line 1 column 1 (char 0)
+HDFCBANK.BO: No price data found, symbol may be delisted (period=1d)
+Failed to get ticker 'HDFCBANK' reason: Expecting value: line 1 column 1 (char 0)
+HDFCBANK: No price data found, symbol may be delisted (period=1d)
+[Error] Symbol 'HDFCBANK' is invalid or not listed on Yahoo Finance.
+❌ Invalid symbol: HDFCBANK
+⏳ Waiting 2 seconds before next symbol...
+
+[5/10] Processing symbol: ICICIBANK
+----------------------------------------
+Adding new symbol: ICICIBANK
+Failed to get ticker 'ICICIBANK.NS' reason: Expecting value: line 1 column 1 (char 0)
+ICICIBANK.NS: No price data found, symbol may be delisted (period=1d)
+Failed to get ticker 'ICICIBANK.BO' reason: Expecting value: line 1 column 1 (char 0)
+ICICIBANK.BO: No price data found, symbol may be delisted (period=1d)
+Failed to get ticker 'ICICIBANK' reason: Expecting value: line 1 column 1 (char 0)
+ICICIBANK: No price data found, symbol may be delisted (period=1d)
+[Error] Symbol 'ICICIBANK' is invalid or not listed on Yahoo Finance.
+❌ Invalid symbol: ICICIBANK
+⏳ Waiting 2 seconds before next symbol...
+
+[6/10] Processing symbol: SBIN
+----------------------------------------
+Adding new symbol: SBIN
+Failed to get ticker 'SBIN.NS' reason: Expecting value: line 1 column 1 (char 0)
+SBIN.NS: No price data found, symbol may be delisted (period=1d)
+Failed to get ticker 'SBIN.BO' reason: Expecting value: line 1 column 1 (char 0)
+SBIN.BO: No price data found, symbol may be delisted (period=1d)
+Failed to get ticker 'SBIN' reason: Expecting value: line 1 column 1 (char 0)
+SBIN: No price data found, symbol may be delisted (period=1d)
+[Error] Symbol 'SBIN' is invalid or not listed on Yahoo Finance.
+❌ Invalid symbol: SBIN
+⏳ Waiting 2 seconds before next symbol...
+
+[7/10] Processing symbol: LT
+----------------------------------------
+Adding new symbol: LT
+Failed to get ticker 'LT.NS' reason: Expecting value: line 1 column 1 (char 0)
+LT.NS: No price data found, symbol may be delisted (period=1d)
+Failed to get ticker 'LT.BO' reason: Expecting value: line 1 column 1 (char 0)
+LT.BO: No price data found, symbol may be delisted (period=1d)
+Failed to get ticker 'LT' reason: Expecting value: line 1 column 1 (char 0)
+LT: No price data found, symbol may be delisted (period=1d)
+[Error] Symbol 'LT' is invalid or not listed on Yahoo Finance.
+❌ Invalid symbol: LT
+⏳ Waiting 2 seconds before next symbol...
+
+[8/10] Processing symbol: AXISBANK
+----------------------------------------
+Adding new symbol: AXISBANK
+Failed to get ticker 'AXISBANK.NS' reason: Expecting value: line 1 column 1 (char 0)
+AXISBANK.NS: No price data found, symbol may be delisted (period=1d)
+Failed to get ticker 'AXISBANK.BO' reason: Expecting value: line 1 column 1 (char 0)
+AXISBANK.BO: No price data found, symbol may be delisted (period=1d)
+Failed to get ticker 'AXISBANK' reason: Expecting value: line 1 column 1 (char 0)
+AXISBANK: No price data found, symbol may be delisted (period=1d)
+[Error] Symbol 'AXISBANK' is invalid or not listed on Yahoo Finance.
+❌ Invalid symbol: AXISBANK
+⏳ Waiting 2 seconds before next symbol...
+
+[9/10] Processing symbol: BHARTIARTL
+----------------------------------------
+Adding new symbol: BHARTIARTL
+Failed to get ticker 'BHARTIARTL.NS' reason: Expecting value: line 1 column 1 (char 0)
+BHARTIARTL.NS: No price data found, symbol may be delisted (period=1d)
+Failed to get ticker 'BHARTIARTL.BO' reason: Expecting value: line 1 column 1 (char 0)
+BHARTIARTL.BO: No price data found, symbol may be delisted (period=1d)
+Failed to get ticker 'BHARTIARTL' reason: Expecting value: line 1 column 1 (char 0)
+BHARTIARTL: No price data found, symbol may be delisted (period=1d)
+[Error] Symbol 'BHARTIARTL' is invalid or not listed on Yahoo Finance.
+❌ Invalid symbol: BHARTIARTL
+⏳ Waiting 2 seconds before next symbol...
+
+[10/10] Processing symbol: ITC
+----------------------------------------
+Adding new symbol: ITC
+Failed to get ticker 'ITC.NS' reason: Expecting value: line 1 column 1 (char 0)
+ITC.NS: No price data found, symbol may be delisted (period=1d)
+Failed to get ticker 'ITC.BO' reason: Expecting value: line 1 column 1 (char 0)
+ITC.BO: No price data found, symbol may be delisted (period=1d)
+Failed to get ticker 'ITC' reason: Expecting value: line 1 column 1 (char 0)
+ITC: No price data found, symbol may be delisted (period=1d)
+[Error] Symbol 'ITC' is invalid or not listed on Yahoo Finance.
+❌ Invalid symbol: ITC
+
+============================================================
+MULTIPLE SYMBOL ADDITION SUMMARY
+============================================================
+
+❌ Failed to add 10 symbols:
+   • RELIANCE
+   • TCS
+   • INFY
+   • HDFCBANK
+   • ICICIBANK
+   • SBIN
+   • LT
+   • AXISBANK
+   • BHARTIARTL
+   • ITC
+
+📊 Total: 0 successful, 10 failed
