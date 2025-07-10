@@ -172,12 +172,15 @@ class DataFetcher:
 
 
 class DataFetcher:
-    """Handles data fetching from Yahoo Finance"""
+    """Handles data fetching from Yahoo Finance with simple, reliable approach"""
+
+    def __init__(self):
+        self.market_utils = MarketUtils()
 
     def process_market_data(self, df):
         """
         Process market data by:
-        1. Converting timestamps to IST (UTC+5:30)
+        1. Converting timestamps to IST (UTC+5:30)  
         2. Reversing row order so most recent is last
 
         Args:
@@ -198,18 +201,15 @@ class DataFetcher:
         # Convert UTC to IST (UTC+5:30)
         df['datetime'] = df['datetime'] + timedelta(hours=5, minutes=30)
 
-        # Reverse row order so most recent is last
+        # Reverse row order so most recent is last (bottom of table)
         df = df.iloc[::-1].reset_index(drop=True)
 
         return df
 
-    def __init__(self):
-        self.market_utils = MarketUtils()
-        self.last_request_time = {}  # Track last request time per symbol for throttling
-
     def fetch_data_by_period(self, symbol, time_period='5m', last_datetime=None):
         """
-        Fetch market data for a symbol based on time period
+        Fetch market data for a symbol with simple, reliable approach
+        Based on working yahoo_finance_working.py code
         
         Args:
             symbol: Stock symbol
@@ -222,74 +222,34 @@ class DataFetcher:
                 print(f"❌ Unable to find valid Yahoo symbol for {symbol}")
                 return pd.DataFrame()
 
-            # Rate limiting: Add delay to avoid hitting API limits
-            config = DATA_CONFIG.get('5M' if time_period == '5m' else 'DAILY', {})
-            min_throttle = config.get('min_throttle_seconds', 30)  # Reduced from 60 to 30
-            
-            # Check throttling for this symbol
-            current_time = time.time()
-            if symbol in self.last_request_time:
-                time_since_last = current_time - self.last_request_time[symbol]
-                if time_since_last < min_throttle:
-                    print(f"⏸️  Throttling {symbol}: Last request {time_since_last:.1f}s ago (min: {min_throttle}s)")
-                    return pd.DataFrame()
-
-            # Update last request time
-            self.last_request_time[symbol] = current_time
-            
-            # Add base delay between requests
-            time.sleep(2)  # Reduced from 3 to 2
-
-            stock = yf.Ticker(yahoo_symbol)
             print(f"📡 Fetching {time_period} data for {yahoo_symbol} (original: {symbol})")
-
-            # Only fetch 5-minute data during market hours
+            
+            # Simple approach: just use period-based fetching
+            stock = yf.Ticker(yahoo_symbol)
+            
             if time_period == '5m':
-                if not self.market_utils.is_market_open():
-                    print(f"🔒 Market closed - skipping 5-minute data for {yahoo_symbol}")
+                # For 5-minute data, use shorter period to get recent data
+                if self.market_utils.is_market_open():
+                    print(f"📊 Market open - fetching 5-minute data")
+                    new_data = stock.history(period='1d', interval='5m')  # Last day of 5m data
+                else:
+                    print(f"🔒 Market closed - skipping 5-minute data")
                     return pd.DataFrame()
-
-                # Fetch 5-minute data during market hours
-                if last_datetime:
-                    # Start from last datetime
-                    start_date = last_datetime - timedelta(minutes=5)  # Small overlap to ensure no gaps
-                    end_date = datetime.now(INDIA_TZ)
-                else:
-                    # Fetch initial data - get more data for better coverage
-                    end_date = datetime.now(INDIA_TZ)
-                    start_date = end_date - timedelta(hours=2)  # Last 2 hours instead of 30 minutes
-
-                print(f"📊 Fetching 5-minute candles from {start_date.strftime('%Y-%m-%d %H:%M')} to {end_date.strftime('%Y-%m-%d %H:%M')}")
-
-                # Fetch with retry logic
-                new_data = self._fetch_with_retry(stock, start_date, end_date, '5m', yahoo_symbol)
-
+                    
             elif time_period == '1d':
-                # Fetch daily data (less frequent, can be done anytime)
-                if last_datetime:
-                    # Start from last datetime
-                    start_date = last_datetime.date() - timedelta(days=1)  # Small overlap
-                    end_date = datetime.now(INDIA_TZ).date()
-                else:
-                    # Fetch initial data - get more historical data
-                    end_date = datetime.now(INDIA_TZ).date()
-                    start_date = end_date - timedelta(days=30)  # Last 30 days instead of 7
-
-                print(f"📊 Fetching daily candles from {start_date} to {end_date}")
-
-                # Fetch with retry logic
-                new_data = self._fetch_with_retry(stock, start_date, end_date, '1d', yahoo_symbol)
-
+                # For daily data, get more historical data
+                print(f"📊 Fetching daily data")
+                new_data = stock.history(period='3mo', interval='1d')  # Last 3 months of daily data
             else:
                 print(f"❌ Unsupported time_period: {time_period}")
                 return pd.DataFrame()
 
             if new_data.empty:
-                print(f"ℹ️  No new data available for {yahoo_symbol}")
+                print(f"❌ No data found for {yahoo_symbol}")
                 return pd.DataFrame()
 
-            # Process and clean data
-            new_data = new_data[['Open', 'High', 'Low', 'Close', 'Volume']]
+            # Clean and prepare data
+            new_data = new_data[['Open', 'High', 'Low', 'Close', 'Volume']].copy()
             new_data.index.name = 'datetime'
             new_data.reset_index(inplace=True)
 
@@ -300,53 +260,9 @@ class DataFetcher:
             # Process the market data (convert to IST and reverse order)
             new_data = self.process_market_data(new_data)
 
-            print(f"✅ Processed {len(new_data)} records for {symbol}")
+            print(f"✅ Successfully fetched {len(new_data)} records for {symbol}")
             return new_data
 
         except Exception as e:
             print(f"❌ Error fetching {time_period} data for {symbol}: {e}")
             return pd.DataFrame()
-
-    def _fetch_with_retry(self, stock, start_date, end_date, interval, symbol):
-        """Fetch data with retry logic and rate limit handling"""
-        max_retries = 3
-        retry_delays = [10, 30, 60]  # Longer delays to handle network issues
-        
-        for attempt in range(max_retries):
-            try:
-                print(f"   📡 Attempt {attempt + 1}/{max_retries} for {symbol}")
-                
-                # Add timeout and better error handling
-                import socket
-                socket.setdefaulttimeout(30)  # 30 second timeout
-                
-                data = stock.history(start=start_date, end=end_date, interval=interval)
-                
-                if not data.empty:
-                    print(f"   ✅ Fetched {len(data)} records")
-                    return data
-                else:
-                    print(f"   ⚠️  No data returned on attempt {attempt + 1}")
-                    
-            except Exception as e:
-                error_msg = str(e).lower()
-                
-                if "429" in error_msg or "too many requests" in error_msg:
-                    print(f"   ❌ Rate limit hit on attempt {attempt + 1}")
-                    wait_time = 60 + (attempt * 30)  # Much longer wait for rate limits
-                elif "expecting value" in error_msg or "json" in error_msg:
-                    print(f"   ❌ API response error on attempt {attempt + 1}: Invalid JSON")
-                    wait_time = 20 + (attempt * 10)  # Network/API issues
-                elif "timeout" in error_msg or "connection" in error_msg:
-                    print(f"   ❌ Connection timeout on attempt {attempt + 1}")
-                    wait_time = 15 + (attempt * 5)  # Connection issues
-                else:
-                    print(f"   ❌ Attempt {attempt + 1} failed: {e}")
-                    wait_time = retry_delays[attempt] if attempt < len(retry_delays) else 60
-
-                if attempt < max_retries - 1:
-                    print(f"   ⏳ Retrying in {wait_time} seconds...")
-                    time.sleep(wait_time)
-
-        print(f"   ❌ Failed to fetch data after {max_retries} attempts")
-        return pd.DataFrame()

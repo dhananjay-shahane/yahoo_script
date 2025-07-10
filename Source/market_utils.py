@@ -57,7 +57,7 @@ class MarketUtils:
         return False
 
     def get_yahoo_symbol(self, symbol):
-        """Convert symbol to Yahoo Finance format with validation"""
+        """Convert symbol to Yahoo Finance format - simple approach without validation"""
         symbol = symbol.strip().upper()
 
         # Step 1: Check if it's a known Indian index
@@ -71,9 +71,8 @@ class MarketUtils:
             print(f"🔍 Symbol appears pre-formatted: {symbol}")
             return symbol
 
-        # Step 3: For Indian stocks, directly use .NS format (most common)
-        # Skip validation to avoid API issues during market hours
-        if symbol.isalpha() and len(symbol) <= 10:  # Likely Indian stock
+        # Step 3: For likely Indian stocks, use .NS format
+        if symbol.isalpha() and len(symbol) <= 10:
             preferred_symbol = f"{symbol}.NS"
             print(f"🔍 Using Indian stock format: {symbol} -> {preferred_symbol}")
             return preferred_symbol

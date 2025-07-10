@@ -45,7 +45,7 @@ DATA_CONFIG = {
     '5M': {
         'fetching_time_interval': 300,    # How often to make requests (5 minutes)
         'time_period': '5m',              # Data granularity (5-minute candles)
-        'min_throttle_seconds': 30,       # Minimum time between requests per symbol (reduced)
+        'min_throttle_seconds': 10,       # Reduced to 10 seconds between requests per symbol
         'table_suffix': '_5M',
         'display_name': '5-minute',
         'description': 'Focus on 5-minute data during market hours'
@@ -53,7 +53,7 @@ DATA_CONFIG = {
     'DAILY': {
         'fetching_time_interval': 3600,   # How often to make requests (1 hour)
         'time_period': '1d',              # Data granularity (daily candles)
-        'min_throttle_seconds': 120,      # Minimum time between requests per symbol (reduced)
+        'min_throttle_seconds': 10,      # Reduced to 10 seconds between requests per symbol
         'table_suffix': '_DAILY',
         'display_name': 'Daily',
         'description': 'Daily data updates (less frequent)'
