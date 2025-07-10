@@ -34,25 +34,25 @@ class MarketUtils:
 
         return is_working_day and is_market_hours
 
-    def _validate_symbol(self, symbol, max_retries=3):
-        """Validate symbol with retry logic"""
+    def _validate_symbol(self, symbol, max_retries=2):
+        """Validate symbol with retry logic and rate limiting protection"""
         for attempt in range(max_retries):
             try:
                 ticker = yf.Ticker(symbol)
-                # Try to get basic info first
-                info = ticker.info
-                if info and len(info) > 1:  # Basic validation
-                    return True
-
-                # If info fails, try history
-                hist = ticker.history(period="5d")
+                # Use a simple history check with minimal data to avoid rate limits
+                hist = ticker.history(period="1d", interval="1d")
                 if not hist.empty:
                     return True
-
+                    
             except Exception as e:
-                print(f"Validation attempt {attempt + 1} for {symbol}: {e}")
-                if attempt < max_retries - 1:
-                    time_module.sleep(1)  # Wait before retry
+                error_msg = str(e)
+                if "429" in error_msg or "Too Many Requests" in error_msg:
+                    print(f"Rate limit hit for {symbol}, waiting longer...")
+                    time_module.sleep(5 + (attempt * 2))  # Longer wait for rate limits
+                else:
+                    print(f"Validation attempt {attempt + 1} for {symbol}: {e}")
+                    if attempt < max_retries - 1:
+                        time_module.sleep(2)  # Standard wait
                 continue
         return False
 
@@ -63,33 +63,43 @@ class MarketUtils:
         # Check if it's a known Indian index
         if symbol in INDIAN_INDICES:
             yahoo_symbol = INDIAN_INDICES[symbol]
+            print(f"🔍 Using Indian index mapping: {symbol} -> {yahoo_symbol}")
             if self._validate_symbol(yahoo_symbol):
+                print(f"✅ Found valid symbol: {yahoo_symbol}")
                 return yahoo_symbol
 
         # If already in correct format (has dot or starts with ^)
         if '.' in symbol or symbol.startswith("^"):
+            print(f"🔍 Checking formatted symbol: {symbol}")
             if self._validate_symbol(symbol):
+                print(f"✅ Found valid symbol: {symbol}")
                 return symbol
 
-        # Try with .NS suffix for Indian stocks
+        # Try with .NS suffix for Indian stocks first
         indian_symbol = f"{symbol}.NS"
-        print(f"🔍 Checking {indian_symbol}...")
+        print(f"🔍 Checking NSE: {indian_symbol}")
         if self._validate_symbol(indian_symbol):
-            print(f"✅ Found valid symbol: {indian_symbol}")
+            print(f"✅ Found valid NSE symbol: {indian_symbol}")
             return indian_symbol
 
-        # Try with .BO suffix for BSE stocks
-        bse_symbol = f"{symbol}.BO"
-        print(f"🔍 Checking {bse_symbol}...")
-        if self._validate_symbol(bse_symbol):
-            print(f"✅ Found valid symbol: {bse_symbol}")
-            return bse_symbol
+        # Add delay before next attempt to avoid rate limiting
+        time_module.sleep(1)
 
         # Try raw symbol for international stocks
-        print(f"🔍 Checking {symbol}...")
+        print(f"🔍 Checking international: {symbol}")
         if self._validate_symbol(symbol):
-            print(f"✅ Found valid symbol: {symbol}")
+            print(f"✅ Found valid international symbol: {symbol}")
             return symbol
 
-        print(f"❌ Invalid symbol: {symbol}")
+        # Add delay before BSE attempt
+        time_module.sleep(1)
+
+        # Try with .BO suffix for BSE stocks (last resort)
+        bse_symbol = f"{symbol}.BO"
+        print(f"🔍 Checking BSE: {bse_symbol}")
+        if self._validate_symbol(bse_symbol):
+            print(f"✅ Found valid BSE symbol: {bse_symbol}")
+            return bse_symbol
+
+        print(f"❌ Symbol '{symbol}' is invalid or not available")
         return None

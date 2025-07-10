@@ -194,7 +194,7 @@ class StockDataManager:
         print("="*80)
     
     def add_new_symbol(self, symbol):
-        """Add a new symbol to the system"""
+        """Add a new symbol to the system with proper table creation"""
         print(f"Adding new symbol: {symbol}")
         
         # Validate symbol first
@@ -203,22 +203,34 @@ class StockDataManager:
             print(f"❌ Invalid symbol: {symbol}")
             return False
         
+        print(f"✅ Validated symbol: {symbol} -> {yahoo_symbol}")
+        
         # Create tables for both time periods
+        print(f"📋 Creating tables for {symbol}...")
         table_5m = self.db_manager.check_or_create_symbol_table(f"{symbol}_5M")
         table_daily = self.db_manager.check_or_create_symbol_table(f"{symbol}_DAILY")
         
         if table_5m and table_daily:
-            print(f"✅ Successfully added {symbol} to the system")
-            # Fetch initial data
-            self.update_symbol_data(symbol, '5M')
-            self.update_symbol_data(symbol, 'DAILY')
-            return True
+            print(f"✅ Successfully created tables for {symbol}")
+            print(f"   • 5-minute table: {table_5m}")
+            print(f"   • Daily table: {table_daily}")
+            
+            # Fetch initial data for both tables
+            print(f"📊 Fetching initial data for {symbol}...")
+            try:
+                self.update_symbol_data(symbol, '5M')
+                self.update_symbol_data(symbol, 'DAILY')
+                print(f"✅ Successfully added {symbol} to the system with initial data")
+                return True
+            except Exception as e:
+                print(f"⚠️  Tables created but error fetching initial data: {e}")
+                return True  # Tables are created, which is the main goal
         else:
-            print(f"❌ Failed to add {symbol} to the system")
+            print(f"❌ Failed to create tables for {symbol}")
             return False
     
     def add_multiple_symbols(self, symbols):
-        """Add multiple symbols to the system"""
+        """Add multiple symbols to the system with improved rate limiting"""
         print(f"\n🔄 Processing {len(symbols)} symbols...")
         print("=" * 60)
         
@@ -230,19 +242,25 @@ class StockDataManager:
             print("-" * 40)
             
             try:
+                # Add longer delay between symbols to avoid rate limiting
+                if i > 1:
+                    print("⏳ Waiting 5 seconds before processing next symbol...")
+                    time.sleep(5)
+                
                 if self.add_new_symbol(symbol):
                     successful_adds.append(symbol)
+                    print(f"✅ Successfully processed {symbol}")
                 else:
                     failed_adds.append(symbol)
+                    print(f"❌ Failed to process {symbol}")
                     
             except Exception as e:
                 print(f"❌ Error processing {symbol}: {e}")
                 failed_adds.append(symbol)
             
-            # Add a small delay between symbols to avoid rate limiting
-            if i < len(symbols):
-                print("⏳ Waiting 2 seconds before next symbol...")
-                time.sleep(2)
+            # Progress indicator
+            progress = (i / len(symbols)) * 100
+            print(f"📊 Progress: {i}/{len(symbols)} ({progress:.1f}%)")
         
         # Summary
         print("\n" + "=" * 60)
@@ -252,7 +270,7 @@ class StockDataManager:
         if successful_adds:
             print(f"✅ Successfully added {len(successful_adds)} symbols:")
             for symbol in successful_adds:
-                print(f"   • {symbol}")
+                print(f"   • {symbol} (tables: {symbol}_5M, {symbol}_DAILY)")
         
         if failed_adds:
             print(f"\n❌ Failed to add {len(failed_adds)} symbols:")
@@ -262,6 +280,9 @@ class StockDataManager:
         print(f"\n📊 Total: {len(successful_adds)} successful, {len(failed_adds)} failed")
         
         if successful_adds:
-            print(f"\n💡 All successfully added symbols are now available for continuous monitoring!")
+            print(f"\n💡 All successfully added symbols now have:")
+            print(f"   • 5-minute data tables (for intraday tracking)")
+            print(f"   • Daily data tables (for historical analysis)")
+            print(f"   • Automatic data updates every 5 minutes during market hours")
         
         return successful_adds, failed_adds

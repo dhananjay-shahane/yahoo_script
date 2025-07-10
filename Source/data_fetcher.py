@@ -126,8 +126,8 @@ class DataFetcher:
                 print(f"Unable to find valid Yahoo symbol for {symbol}")
                 return pd.DataFrame()
 
-            # Add delay to avoid rate limiting
-            time.sleep(1)  # Increased delay
+            # Add delay to avoid rate limiting (increased for multiple symbols)
+            time.sleep(2)
 
             stock = yf.Ticker(yahoo_symbol)
             print(f"Fetching data for {yahoo_symbol} (original: {symbol})")
@@ -170,11 +170,16 @@ class DataFetcher:
                             else:
                                 print(f"⚠️  No data returned on attempt {retry_count + 1}")
                         except Exception as e:
-                            print(f"❌ Attempt {retry_count + 1} failed: {e}")
+                            error_msg = str(e)
+                            if "429" in error_msg or "Too Many Requests" in error_msg:
+                                print(f"❌ Rate limit hit on attempt {retry_count + 1}")
+                                wait_time = 10 + (retry_count * 5)  # Longer wait for rate limits
+                            else:
+                                print(f"❌ Attempt {retry_count + 1} failed: {e}")
+                                wait_time = 2 ** retry_count  # Exponential backoff
 
                         retry_count += 1
                         if retry_count < max_retries:
-                            wait_time = 2 ** retry_count  # Exponential backoff
                             print(f"⏳ Retrying in {wait_time} seconds...")
                             time.sleep(wait_time)
 

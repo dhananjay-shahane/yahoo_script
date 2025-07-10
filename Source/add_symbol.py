@@ -11,18 +11,29 @@ def add_symbol():
     manager = StockDataManager()
     
     print("=== Add New Symbol ===")
-    symbol = input("Enter symbol to add (e.g., RELIANCE, AAPL, NSEI): ").strip().upper()
+    print("This will create two tables for the symbol:")
+    print("  • {SYMBOL}_5M (for 5-minute intraday data)")
+    print("  • {SYMBOL}_DAILY (for daily historical data)")
+    
+    symbol = input("\nEnter symbol to add (e.g., RELIANCE, AAPL, NSEI): ").strip().upper()
     
     if not symbol:
-        print("Invalid symbol. Please enter a valid symbol.")
+        print("❌ Invalid symbol. Please enter a valid symbol.")
         return
     
-    print(f"Adding symbol: {symbol}")
+    print(f"\n🔄 Adding symbol: {symbol}")
+    print(f"Will create tables: {symbol}_5M and {symbol}_DAILY")
+    
     try:
-        manager.add_new_symbol(symbol)
-        print(f"Successfully added {symbol} to the system!")
+        success = manager.add_new_symbol(symbol)
+        if success:
+            print(f"\n🎉 Successfully added {symbol} to the system!")
+            print(f"✅ Created tables: {symbol}_5M and {symbol}_DAILY")
+            print(f"💡 You can now include this symbol in continuous monitoring.")
+        else:
+            print(f"\n❌ Failed to add {symbol}. Please check the error messages above.")
     except Exception as e:
-        print(f"Error adding symbol {symbol}: {e}")
+        print(f"\n❌ Error adding symbol {symbol}: {e}")
 
 
 if __name__ == "__main__":
