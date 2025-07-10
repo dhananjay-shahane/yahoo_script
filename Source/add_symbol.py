@@ -21,7 +21,7 @@ def add_symbol():
         print("❌ Invalid symbol. Please enter a valid symbol.")
         return
     
-    print(f"\n🔄 Adding symbol: {symbol}")
+    print(f"\n➕ Adding new symbol: {symbol}")
     print(f"Will create tables: {symbol}_5M and {symbol}_DAILY")
     
     try:

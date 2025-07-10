@@ -23,7 +23,7 @@ def add_multiple_symbols():
         print(f"Using default symbols: {', '.join(default_symbols)}")
         symbols = default_symbols
     else:
-        # Parse the input and clean up symbols
+        # Parse the input and clean up symbols (ensure uppercase)
         symbols = [s.strip().upper() for s in symbols_input.split(',') if s.strip()]
     
     if not symbols:

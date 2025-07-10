@@ -202,6 +202,8 @@ class StockDataManager:
     
     def add_new_symbol(self, symbol):
         """Add a new symbol to the system with proper table creation"""
+        # Ensure symbol is uppercase
+        symbol = symbol.upper().strip()
         print(f"Adding new symbol: {symbol}")
         
         # Create tables for both time periods FIRST (regardless of symbol validation)
@@ -222,7 +224,8 @@ class StockDataManager:
         yahoo_symbol = self.market_utils.get_yahoo_symbol(symbol)
         if not yahoo_symbol:
             print(f"⚠️  Symbol validation failed, but tables are created")
-            print(f"💡 You can manually check the symbol or data will be fetched when validation succeeds")
+            print(f"💡 Tables {symbol}_5M and {symbol}_DAILY are ready for data")
+            print(f"💡 Data will be fetched during next update cycle if symbol becomes valid")
             return True  # Tables are created, which is the main goal
         
         print(f"✅ Validated symbol: {symbol} -> {yahoo_symbol}")
@@ -263,6 +266,8 @@ class StockDataManager:
     
     def add_multiple_symbols(self, symbols):
         """Add multiple symbols to the system with improved rate limiting"""
+        # Ensure all symbols are uppercase
+        symbols = [symbol.upper().strip() for symbol in symbols]
         print(f"\n🔄 Processing {len(symbols)} symbols...")
         print("=" * 60)
         

@@ -43,7 +43,7 @@ class MarketUtils:
                 hist = ticker.history(period="1d", interval="1d")
                 if not hist.empty:
                     return True
-                    
+
             except Exception as e:
                 error_msg = str(e)
                 if "429" in error_msg or "Too Many Requests" in error_msg:
@@ -57,49 +57,45 @@ class MarketUtils:
         return False
 
     def get_yahoo_symbol(self, symbol):
-        """Convert symbol to Yahoo Finance format with validation"""
-        symbol = symbol.strip().upper()
+        """Get the correct Yahoo Finance symbol for a given stock symbol"""
+        symbol = symbol.upper().strip()
 
         # Check if it's a known Indian index
-        if symbol in INDIAN_INDICES:
-            yahoo_symbol = INDIAN_INDICES[symbol]
-            print(f"🔍 Using Indian index mapping: {symbol} -> {yahoo_symbol}")
-            if self._validate_symbol(yahoo_symbol):
-                print(f"✅ Found valid symbol: {yahoo_symbol}")
-                return yahoo_symbol
+        if symbol in self.INDIAN_INDICES:
+            return self.INDIAN_INDICES[symbol]
 
-        # If already in correct format (has dot or starts with ^)
+        # If already looks valid (like AAPL, ^NSEI, TSLA.BA), return as-is
         if '.' in symbol or symbol.startswith("^"):
-            print(f"🔍 Checking formatted symbol: {symbol}")
-            if self._validate_symbol(symbol):
-                print(f"✅ Found valid symbol: {symbol}")
-                return symbol
-
-        # Try with .NS suffix for Indian stocks first
-        indian_symbol = f"{symbol}.NS"
-        print(f"🔍 Checking NSE: {indian_symbol}")
-        if self._validate_symbol(indian_symbol):
-            print(f"✅ Found valid NSE symbol: {indian_symbol}")
-            return indian_symbol
-
-        # Add delay before next attempt to avoid rate limiting
-        time_module.sleep(1)
-
-        # Try raw symbol for international stocks
-        print(f"🔍 Checking international: {symbol}")
-        if self._validate_symbol(symbol):
-            print(f"✅ Found valid international symbol: {symbol}")
             return symbol
 
-        # Add delay before BSE attempt
-        time_module.sleep(1)
+        # Try different variations with simpler validation
+        variations = [
+            f"{symbol}.NS",  # NSE
+            symbol,          # International
+            f"{symbol}.BO"   # BSE
+        ]
 
-        # Try with .BO suffix for BSE stocks (last resort)
-        bse_symbol = f"{symbol}.BO"
-        print(f"🔍 Checking BSE: {bse_symbol}")
-        if self._validate_symbol(bse_symbol):
-            print(f"✅ Found valid BSE symbol: {bse_symbol}")
-            return bse_symbol
+        for variation in variations:
+            exchange = "NSE" if variation.endswith(".NS") else "BSE" if variation.endswith(".BO") else "international"
+            print(f"🔍 Checking {exchange}: {variation}")
+            try:
+                ticker = yf.Ticker(variation)
+                # Try a simple 1-day history check with minimal data
+                hist = ticker.history(period="1d", interval="1d")
+                if not hist.empty and len(hist) > 0:
+                    print(f"✅ Found valid symbol: {variation}")
+                    return variation
+                else:
+                    print(f"❌ No data available for {variation}")
+            except Exception as e:
+                print(f"❌ Error checking {variation}: {str(e)[:50]}...")
+
+        # If all variations fail, return the most likely one for Indian stocks
+        if symbol in ['INFY', 'TCS', 'RELIANCE', 'HDFCBANK', 'ICICIBANK', 'WIPRO', 'BHARTIARTL', 'SBIN', 'ITC', 'KOTAKBANK']:
+            preferred_symbol = f"{symbol}.NS"
+            print(f"⚠️  Using preferred Indian symbol: {preferred_symbol} (validation failed but symbol is likely correct)")
+            return preferred_symbol
 
         print(f"❌ Symbol '{symbol}' is invalid or not available")
         return None
+```
