@@ -12,6 +12,78 @@ from market_utils import MarketUtils
 
 class DataFetcher:
     """Handles data fetching from Yahoo Finance"""
+    
+    def __init__(self):
+        self.market_utils = MarketUtils()
+    
+    def fetch_data_by_period(self, symbol, interval='5m', last_datetime=None):
+        """Fetch data for a symbol with specified interval"""
+        yahoo_symbol = self.market_utils.get_yahoo_symbol(symbol)
+        
+        if not yahoo_symbol:
+            print(f"❌ Cannot fetch data for invalid symbol: {symbol}")
+            return pd.DataFrame()
+        
+        max_retries = 3
+        retry_count = 0
+        
+        while retry_count < max_retries:
+            try:
+                print(f"📡 Attempt {retry_count + 1}/{max_retries} fetching data for {yahoo_symbol}")
+                
+                # Determine the period based on interval
+                if interval == '5m':
+                    period = '7d'  # Get last 7 days of 5m data
+                elif interval == '1d':
+                    period = '1mo'  # Get last month of daily data
+                else:
+                    period = '1mo'
+                
+                ticker = yf.Ticker(yahoo_symbol)
+                
+                if last_datetime:
+                    # Fetch from last datetime to now
+                    start_date = last_datetime.date()
+                    end_date = datetime.now(INDIA_TZ).date() + timedelta(days=1)
+                    data = ticker.history(start=start_date, end=end_date, interval=interval)
+                else:
+                    # Fetch initial data
+                    data = ticker.history(period=period, interval=interval)
+                
+                if not data.empty:
+                    # Clean and prepare data
+                    data = data[['Open', 'High', 'Low', 'Close', 'Volume']].copy()
+                    data.reset_index(inplace=True)
+                    
+                    # Filter out data before last_datetime if specified
+                    if last_datetime:
+                        data = data[data['Datetime'] > last_datetime]
+                    
+                    if not data.empty:
+                        data.rename(columns={'Datetime': 'datetime'}, inplace=True)
+                        print(f"✅ Successfully fetched {len(data)} records for {yahoo_symbol}")
+                        return data
+                    else:
+                        print(f"ℹ️  No new data available for {yahoo_symbol}")
+                        return pd.DataFrame()
+                else:
+                    print(f"⚠️  No data returned for {yahoo_symbol} on attempt {retry_count + 1}")
+                    
+            except Exception as e:
+                print(f"❌ Attempt {retry_count + 1} failed for {yahoo_symbol}: {e}")
+            
+            retry_count += 1
+            if retry_count < max_retries:
+                wait_time = 2 ** retry_count  # Exponential backoff
+                print(f"⏳ Retrying in {wait_time} seconds...")
+                time.sleep(wait_time)
+        
+        print(f"❌ Failed to fetch data for {yahoo_symbol} after {max_retries} attempts")
+        return pd.DataFrame()
+
+
+class DataFetcher:
+    """Handles data fetching from Yahoo Finance"""
 
     def process_market_data(self, df):
         """
