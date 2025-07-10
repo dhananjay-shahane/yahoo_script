@@ -1,3 +1,4 @@
+
 """
 Configuration settings for the stock data collection system
 """
@@ -28,41 +29,44 @@ MARKET_CONFIG = {
 }
 
 # Data collection configuration
-# fetching_time_interval: How often to make requests to Yahoo Finance (in seconds)
-# time_period: The granularity of data (5m, 1h, 1d, etc.)
-CONFIG = {
-    'intraday': {
-        'fetching_time_interval': 300,  # How often to fetch data (5 minutes in seconds)
-        'time_period': '5m',           # Data granularity (5-minute candles)
-        'request_period': '7d',        # Historical data range to request
-        'table_suffix': '_intraday',
-        'display_name': 'Intraday (5m)'
+# IMPORTANT: fetching_time_interval and time_period are different concepts:
+#
+# fetching_time_interval: How often to make requests to Yahoo Finance API (in seconds)
+#                         - Controls API request frequency to avoid rate limits
+#                         - Should be reasonable to avoid hitting API limits
+#
+# time_period: The granularity/interval of data requested from Yahoo Finance
+#             - Format: Yahoo Finance interval format ('5m', '1h', '1d', etc.)
+#             - Determines the resolution of each data candle
+#
+# Example: fetching_time_interval=300 with time_period='5m' means:
+#          "Fetch 5-minute candles every 5 minutes"
+
+DATA_CONFIG = {
+    '5M': {
+        'fetching_time_interval': 300,    # Fetch every 5 minutes (300 seconds)
+        'time_period': '5m',              # Request 5-minute candles
+        'request_period': '7d',           # Historical data range to request
+        'table_suffix': '_5M',
+        'display_name': '5-minute',
+        'min_throttle_seconds': 60        # Minimum 60 seconds between requests per symbol
     },
-    'daily': {
-        'fetching_time_interval': 86400,  # How often to fetch data (24 hours in seconds)
-        'time_period': '1d',             # Data granularity (daily candles)
-        'request_period': '1mo',         # Historical data range to request
-        'table_suffix': '_daily',
-        'display_name': 'Daily'
+    'DAILY': {
+        'fetching_time_interval': 3600,   # Fetch every hour (3600 seconds) - less frequent for daily data
+        'time_period': '1d',              # Request daily candles
+        'request_period': '1mo',          # Historical data range to request
+        'table_suffix': '_DAILY',
+        'display_name': 'Daily',
+        'min_throttle_seconds': 300       # Minimum 5 minutes between requests per symbol
     }
 }
 
-# Data configuration (for compatibility)
-# fetching_time_interval: How often to make requests (in seconds)
-# time_period: The granularity of data requested from Yahoo Finance
-DATA_CONFIG = {
-    '5M': {
-        'fetching_time_interval': 300,  # Fetch every 5 minutes
-        'time_period': '5m',           # 5-minute candles
-        'table_suffix': '_5M',
-        'display_name': '5-minute'
-    },
-    'DAILY': {
-        'fetching_time_interval': 86400,  # Fetch every 24 hours
-        'time_period': '1d',             # Daily candles
-        'table_suffix': '_DAILY',
-        'display_name': 'Daily'
-    }
+# Rate limiting configuration
+RATE_LIMIT_CONFIG = {
+    'max_requests_per_minute': 10,        # Maximum 10 requests per minute across all symbols
+    'delay_between_symbols': 5,           # 5 seconds delay when processing multiple symbols
+    'retry_delays': [2, 5, 10],          # Progressive retry delays in seconds
+    'max_retries': 3                      # Maximum retry attempts
 }
 
 # Indian indices mapping
@@ -70,4 +74,11 @@ INDIAN_INDICES = {
     'NSEI': '^NSEI',  # Nifty 50
     'BSESN': '^BSESN',  # Sensex
     'NSEBANK': '^NSEBANK'  # Nifty Bank
+}
+
+# Default configuration for continuous updates
+DEFAULT_CONFIG = {
+    'primary_fetching_interval': 300,    # 5 minutes for 5M data during market hours
+    'daily_fetching_interval': 3600,     # 1 hour for daily data updates
+    'focus_on_5m_only': True             # Only fetch 5-minute data during market hours
 }
