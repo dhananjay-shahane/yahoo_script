@@ -1,0 +1,131 @@
+Stock Data Auto-Update Script
+==================================================
+1. Run once (update all existing tables)
+2. Run Every 5 minutes (default)
+3. Add new symbol
+4. Add multiple symbols
+5. Exit
+
+Enter your choice (1, 2, 3, 4, or 5) [default: 2]: 2
+
+🔄 Setting up continuous updates...
+
+Configuration:
+5-minute data interval in seconds [300]: 300
+Daily data interval in seconds [3600]: 300
+
+✅ Starting continuous updates:
+   • 5-minute data: every 300 seconds (5 minutes)
+   • Daily data: every 300 seconds (5 minutes)
+
+⚠️  Press Ctrl+C to stop
+
+================================================================================
+STARTING CONTINUOUS DATA COLLECTION - FOCUSED ON 5-MINUTE DATA
+================================================================================
+📊 Configuration:
+   • fetching_time_interval (5m): 300 seconds (5 minutes)
+   • time_period (5m): '5m' (5-minute candles)
+   • fetching_time_interval (daily): 300 seconds (5 minutes)
+   • time_period (daily): '1d' (daily candles)
+   • Market hours: 09:15 - 15:30 IST (Mon-Fri)
+   • Rate limiting: Enabled to avoid API limits
+   • Data processing: UTC→IST conversion, most recent data at bottom
+   • Current time: 2025-07-10 09:16:57 IST
+📋 Focus: 2 5-minute tables (primary), 1 daily tables (secondary)
+================================================================================
+
+==================== CYCLE 1 ====================
+Time: 2025-07-10 09:17:05 IST
+Market Status: OPEN
+------------------------------------------------------------
+📈 FETCHING 5-MINUTE DATA (time_period: '5m')...
+   • fetching_time_interval: 300s
+   • Data granularity: 5-minute candles
+
+Updating 2 tables for time period 5M
+
+Processing RELIANCE for 5M data...
+
+🔄 Processing RELIANCE (5M)
+Using existing table SYMBOLS.RELIANCE_5M
+📅 No existing data - fetching initial data
+🔄 Fetching 5M data for RELIANCE (data_interval: 5m)...
+🔍 Checking NSE: RELIANCE.NS
+Failed to get ticker 'RELIANCE.NS' reason: Expecting value: line 1 column 1 (char 0)
+RELIANCE.NS: No price data found, symbol may be delisted (period=1d)
+❌ No data available for RELIANCE.NS
+🔍 Checking international: RELIANCE
+Failed to get ticker 'RELIANCE' reason: Expecting value: line 1 column 1 (char 0)
+RELIANCE: No price data found, symbol may be delisted (period=1d)
+❌ No data available for RELIANCE
+🔍 Checking BSE: RELIANCE.BO
+Failed to get ticker 'RELIANCE.BO' reason: Expecting value: line 1 column 1 (char 0)
+RELIANCE.BO: No price data found, symbol may be delisted (period=1d)
+❌ No data available for RELIANCE.BO
+⚠️  Using preferred Indian symbol: RELIANCE.NS (validation failed but symbol is likely correct)
+📡 Fetching 5m data for RELIANCE.NS (original: RELIANCE)
+📊 Fetching 5-minute candles from 08:47 to 09:17
+   📡 Attempt 1/3 for RELIANCE.NS
+Failed to get ticker 'RELIANCE.NS' reason: Expecting value: line 1 column 1 (char 0)
+RELIANCE.NS: No timezone found, symbol may be delisted
+   ⚠️  No data returned on attempt 1
+   📡 Attempt 2/3 for RELIANCE.NS
+Failed to get ticker 'RELIANCE.NS' reason: Expecting value: line 1 column 1 (char 0)
+RELIANCE.NS: No timezone found, symbol may be delisted
+   ⚠️  No data returned on attempt 2
+   📡 Attempt 3/3 for RELIANCE.NS
+Failed to get ticker 'RELIANCE.NS' reason: Expecting value: line 1 column 1 (char 0)
+RELIANCE.NS: No timezone found, symbol may be delisted
+   ⚠️  No data returned on attempt 3
+   ❌ Failed to fetch data after 3 attempts
+ℹ️  No new data available for RELIANCE.NS
+ℹ️  No new data available for RELIANCE
+No data available for RELIANCE
+✅ Completed RELIANCE (5M)
+
+Processing NSEI for 5M data...
+
+🔄 Processing NSEI (5M)
+Using existing table SYMBOLS.NSEI_5M
+📅 No existing data - fetching initial data
+🔄 Fetching 5M data for NSEI (data_interval: 5m)...
+📡 Fetching 5m data for ^NSEI (original: NSEI)
+📊 Fetching 5-minute candles from 08:47 to 09:17
+   📡 Attempt 1/3 for ^NSEI
+Failed to get ticker '^NSEI' reason: Expecting value: line 1 column 1 (char 0)
+^NSEI: No timezone found, symbol may be delisted
+   ⚠️  No data returned on attempt 1
+   📡 Attempt 2/3 for ^NSEI
+Failed to get ticker '^NSEI' reason: Expecting value: line 1 column 1 (char 0)
+^NSEI: No timezone found, symbol may be delisted
+   ⚠️  No data returned on attempt 2
+   📡 Attempt 3/3 for ^NSEI
+Failed to get ticker '^NSEI' reason: Expecting value: line 1 column 1 (char 0)
+^NSEI: No timezone found, symbol may be delisted
+   ⚠️  No data returned on attempt 3
+   ❌ Failed to fetch data after 3 attempts
+ℹ️  No new data available for ^NSEI
+ℹ️  No new data available for NSEI
+No data available for NSEI
+✅ Completed NSEI (5M)
+
+📊 FETCHING DAILY DATA (time_period: '1d')...
+   • fetching_time_interval: 300s
+   • Data granularity: Daily candles
+
+Updating 1 tables for time period DAILY
+
+Processing NSEI for DAILY data...
+
+🔄 Processing NSEI (DAILY)
+Using existing table SYMBOLS.NSEI_DAILY
+📅 No existing data - fetching initial data
+🔄 Fetching DAILY data for NSEI (data_interval: 1d)...
+⏸️  Throttling NSEI: Last request 12.9s ago (min: 300s)
+ℹ️  No new data available for NSEI
+No data available for NSEI
+✅ Completed NSEI (DAILY)
+
+💤 Waiting 300 seconds until next 5-minute data cycle...
+⏰ Next 5m update at: 09:22:05
