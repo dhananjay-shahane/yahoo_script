@@ -1,4 +1,3 @@
-
 import yfinance as yf
 import pandas as pd
 from datetime import datetime, timedelta
@@ -7,7 +6,7 @@ import time
 from psycopg2 import Error
 import pytz
 from sqlalchemy import create_engine
-from database import DatabaseManager
+from utils import DB_URL, create_db_connection, check_or_create_symbol_table
 
 # Mapping for Indian indices to their Yahoo Finance symbols
 INDIAN_INDICES = {
@@ -16,220 +15,187 @@ INDIAN_INDICES = {
     'NSEBANK': '^NSEBANK'  # Nifty Bank
 }
 
-class WorkingYahooFinance:
-    def __init__(self):
-        self.db_manager = DatabaseManager()
-        self.india_tz = pytz.timezone("Asia/Kolkata")
+def get_yahoo_symbol(symbol):
+    symbol = symbol.strip().upper()
 
-    def get_yahoo_symbol(self, symbol):
-        """Get the correct Yahoo Finance symbol for a given stock symbol"""
-        symbol = symbol.strip().upper()
+    # Step 1: Check if it's a known Indian index
+    if symbol in INDIAN_INDICES:
+        return INDIAN_INDICES[symbol]
 
-        # Step 1: Check if it's a known Indian index
-        if symbol in INDIAN_INDICES:
-            return INDIAN_INDICES[symbol]
+    # Step 2: If already looks valid (like AAPL, ^NSEI, TSLA.BA), return as-is
+    if '.' in symbol or symbol.startswith("^"):
+        return symbol
 
-        # Step 2: If already looks valid (like AAPL, ^NSEI, TSLA.BA), return as-is
-        if '.' in symbol or symbol.startswith("^"):
-            return symbol
-
-        # Step 3: Try with .NS (Indian symbol) - but don't validate with API call
-        indian_symbol = f"{symbol}.NS"
-        
-        # For known Indian stocks, prefer .NS suffix
-        known_indian_stocks = ['INFY', 'TCS', 'RELIANCE', 'HDFCBANK', 'ICICIBANK', 'WIPRO', 'BHARTIARTL', 'SBIN', 'ITC', 'KOTAKBANK']
-        if symbol in known_indian_stocks:
+    # Step 3: Try with .NS (Indian symbol)
+    indian_symbol = f"{symbol}.NS"
+    try:
+        if not yf.Ticker(indian_symbol).history(period="1d").empty:
             return indian_symbol
+    except Exception as e:
+        print(f"Error checking {indian_symbol}: {e}")
 
-        # Step 4: For international stocks, try raw symbol first
-        # Common international stocks
-        known_international = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN', 'META', 'NVDA']
-        if symbol in known_international:
+    # Step 4: Try raw symbol (international)
+    try:
+        if not yf.Ticker(symbol).history(period="1d").empty:
             return symbol
+    except Exception as e:
+        print(f"Error checking {symbol}: {e}")
 
-        # Step 5: Default to Indian symbol for unknown symbols
-        return indian_symbol
+    # Step 5: Could not find valid symbol
+    print(f"[Error] Symbol '{symbol}' is invalid or not listed on Yahoo Finance.")
+    return None
 
-    def is_market_open(self):
-        """Check if Indian stock market is open now (Mon–Fri, 9:15–15:30 IST)"""
-        now = datetime.now(self.india_tz)
-        market_open = datetime.strptime("09:15", "%H:%M").time()
-        market_close = datetime.strptime("15:30", "%H:%M").time()
-        
-        return now.weekday() < 5 and market_open <= now.time() <= market_close
 
-    def fetch_new_data(self, symbol, minutes_back=5, interval='5m'):
-        """Fetch recent market data for a symbol with fallback if market is closed"""
-        try:
-            yahoo_symbol = self.get_yahoo_symbol(symbol)
-            print(f"📊 Using Yahoo symbol: {yahoo_symbol}")
+def is_market_open():
+    """Check if Indian stock market is open now (Mon–Fri, 9:15–15:30 IST)"""
+    india_tz = pytz.timezone("Asia/Kolkata")
+    now = datetime.now(india_tz)
+    market_open = datetime.strptime("09:15", "%H:%M").time()
+    market_close = datetime.strptime("15:30", "%H:%M").time()
 
-            if interval == '5m' and self.is_market_open():
-                # Fetch last minutes_back minutes of 5-minute data
-                end_date = datetime.now(self.india_tz)
-                start_date = end_date - timedelta(minutes=minutes_back)
-                print(f"Fetching 5-minute data for {yahoo_symbol} from {start_date} to {end_date}")
-                stock = yf.Ticker(yahoo_symbol)
-                new_data = stock.history(start=start_date, end=end_date, interval='5m')
-            else:
-                # Market is closed or interval is not '5m', fallback to daily data
-                print(f"Fetching daily data for {yahoo_symbol}")
-                stock = yf.Ticker(yahoo_symbol)
-                new_data = stock.history(period='5d', interval='1d')
+    return now.weekday() < 5 and market_open <= now.time() <= market_close
 
-            if new_data.empty:
-                print(f"No data found for {yahoo_symbol}")
-                return pd.DataFrame()
-
-            new_data = new_data[['Open', 'High', 'Low', 'Close', 'Volume']]
-            new_data.index.name = 'datetime'
-            new_data.reset_index(inplace=True)
-            return new_data
-
-        except Exception as e:
-            print(f"Error fetching data for {symbol}: {e}")
+def fetch_new_data(symbol, minutes_back=5, interval='5m'):
+    """Fetch recent market data for a symbol with fallback if market is closed"""
+    try:
+        yahoo_symbol = get_yahoo_symbol(symbol)
+        if not yahoo_symbol:
             return pd.DataFrame()
 
-    def create_symbol_tables(self, symbol):
-        """Create both 5M and DAILY tables for a symbol"""
-        symbol = symbol.upper().strip()
-        
-        print(f"📋 Creating tables for {symbol}...")
-        table_5m = self.db_manager.check_or_create_symbol_table(f"{symbol}_5M")
-        table_daily = self.db_manager.check_or_create_symbol_table(f"{symbol}_DAILY")
-        
-        if table_5m and table_daily:
-            print(f"✅ Successfully created tables for {symbol}")
-            print(f"   • 5-minute table: {table_5m}")
-            print(f"   • Daily table: {table_daily}")
-            return True
-        else:
-            print(f"❌ Failed to create tables for {symbol}")
-            return False
+        india_tz = pytz.timezone("Asia/Kolkata")
 
-    def update_symbol_data(self, symbol, table_type='5M'):
-        """Update data for a specific symbol"""
-        symbol = symbol.upper().strip()
-        
-        if table_type == '5M':
-            table_name = f"SYMBOLS.{symbol}_5M"
-            interval = '5m'
-        elif table_type == 'DAILY':
-            table_name = f"SYMBOLS.{symbol}_DAILY"
-            interval = '1d'
+        if interval == '5m' and is_market_open():
+            # Fetch last minutes_back minutes of 1-minute data
+            end_date = datetime.now(india_tz)
+            start_date = end_date - timedelta(minutes=minutes_back)
+            print(f"Fetching 1-minute data for {yahoo_symbol} from {start_date} to {end_date}")
+            stock = yf.Ticker(yahoo_symbol)
+            new_data = stock.history(start=start_date, end=end_date, interval='1m')
         else:
-            print(f"❌ Invalid table type: {table_type}")
-            return False
+            # Market is closed or not using 5m. Fetching latest 1-day data for {yahoo_symbol}")
+            print(f"Market is closed or not using 5m. Fetching latest 1-day data for {yahoo_symbol}")
+            stock = yf.Ticker(yahoo_symbol)
+            new_data = stock.history(period='1d', interval='1d')  # 1 days
 
-        print(f"🔄 Updating {symbol} ({table_type})")
-        
-        # Fetch new data
-        new_data = self.fetch_new_data(symbol, minutes_back=15, interval=interval)
-        
-        if not new_data.empty:
-            rows_inserted = self.db_manager.save_data_to_db(table_name, new_data)
-            if rows_inserted > 0:
-                print(f"💾 Saved {rows_inserted} new records to {table_name}")
-            
+        if new_data.empty:
+            print(f"No data found for {yahoo_symbol}")
+            return pd.DataFrame()
+
+        new_data = new_data[['Open', 'High', 'Low', 'Close', 'Volume']]
+        new_data.index.name = 'datetime'
+        new_data.reset_index(inplace=True)
+        return new_data
+
+    except Exception as e:
+        print(f"Error fetching data for {symbol}: {e}")
+        return pd.DataFrame()
+
+def save_data_to_db(table_name, df):
+    """Save data to the symbol table, avoiding duplicates"""
+    if df.empty:
+        return
+
+    conn = create_db_connection()
+    if conn:
+        try:
+            cur = conn.cursor()
+
+            # Get last datetime to only fetch newer data
+            cur.execute(f"SELECT MAX(datetime) FROM {table_name}")
+            last_datetime = cur.fetchone()[0]
+
+            # Prepare new data to insert
+            new_records = []
+            for _, row in df.iterrows():
+                if last_datetime is None or row['datetime'] > last_datetime:
+                    new_records.append((
+                        row['datetime'],
+                        row['Open'],
+                        row['High'],
+                        row['Low'],
+                        row['Close'],
+                        row['Volume']
+                    ))
+
+            # Insert new records
+            if new_records:
+                cur.executemany(f"""
+                    INSERT INTO {table_name} (datetime, open, high, low, close, volume)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                """, new_records)
+                conn.commit()
+                print(f"Inserted {len(new_records)} new records into {table_name}")
+            else:
+                print(f"No new records to insert for {table_name}")
+
+        except Exception as e:
+            print(f"Error saving data to {table_name}: {e}")
+            conn.rollback()
+        finally:
+            conn.close()
+
+def display_latest_data(table_name, symbol, limit=1000):
+    """Display the latest data for a symbol"""
+    conn = create_db_connection()
+    if conn:
+        try:
+            cur = conn.cursor()
+
+            cur.execute(f"""
+                SELECT datetime, open, high, low, close, volume
+                FROM {table_name}
+                ORDER BY datetime DESC
+                LIMIT %s
+            """, (limit,))
+
+            data = cur.fetchall()
+            if not data:
+                print(f"No data available for {symbol}")
+                return
+
+            # Format and display data
+            df = pd.DataFrame(data, columns=['Datetime', 'Open', 'High', 'Low', 'Close', 'Volume'])
+            df['Datetime'] = pd.to_datetime(df['Datetime']).dt.strftime('%Y-%m-%d %H:%M:%S%z')
+
+            print("\n" + "="*80)
+            print(f"Latest Data for {symbol}")
+            print("="*80)
+            print(tabulate(df, headers='keys', tablefmt='psql', showindex=False))
+            print("\n" + "="*80)
+
+        except Exception as e:
+            print(f"Error displaying data: {e}")
+        finally:
+            conn.close()
+
+def main_loop(symbol):
+    """Main data collection loop"""
+    try:
+        # Create or verify table for this symbol - IMPORTANT: Create table first
+        table_name = check_or_create_symbol_table(symbol.upper())
+        if not table_name:
+            print(f"Failed to initialize table for {symbol}")
+            return
+
+        print(f"✅ Table created/verified: {table_name}")
+
+        while True:
+            # Get recent data (last 15 minutes)
+            new_data = fetch_new_data(symbol, minutes_back=15)
+
+            if not new_data.empty:
+                save_data_to_db(table_name, new_data)
+
             # Display latest data
-            self.db_manager.display_latest_data(table_name, symbol, 5)
-            return True
-        else:
-            print(f"ℹ️  No new data available for {symbol}")
-            return False
+            display_latest_data(table_name, symbol)
 
-    def add_single_symbol(self, symbol):
-        """Add a single symbol with both 5M and DAILY tables"""
-        symbol = symbol.upper().strip()
-        
-        print(f"➕ Adding new symbol: {symbol}")
-        
-        # Create tables first
-        if not self.create_symbol_tables(symbol):
-            return False
-            
-        # Try to fetch initial data
-        print(f"📊 Fetching initial data for {symbol}...")
-        
-        # Fetch daily data
-        daily_success = self.update_symbol_data(symbol, 'DAILY')
-        
-        # Fetch 5M data only if market is open
-        if self.is_market_open():
-            m5_success = self.update_symbol_data(symbol, '5M')
-        else:
-            print(f"🔒 Market closed - skipping 5-minute data fetch")
-            m5_success = True
-        
-        if daily_success or m5_success:
-            print(f"✅ Successfully added {symbol} to the system")
-        else:
-            print(f"✅ Tables created for {symbol} (data will be fetched when available)")
-        
-        return True
+            # Wait 1 minute before next update
+            time.sleep(60)
 
-    def add_multiple_symbols(self, symbols):
-        """Add multiple symbols to the system"""
-        symbols = [symbol.upper().strip() for symbol in symbols]
-        print(f"\n🔄 Processing {len(symbols)} symbols...")
-        print("=" * 60)
-        
-        successful_adds = []
-        failed_adds = []
-        
-        for i, symbol in enumerate(symbols, 1):
-            print(f"\n[{i}/{len(symbols)}] Processing symbol: {symbol}")
-            print("-" * 40)
-            
-            try:
-                # Add delay between symbols to avoid rate limiting
-                if i > 1:
-                    print("⏳ Waiting 3 seconds before processing next symbol...")
-                    time.sleep(3)
-                
-                if self.add_single_symbol(symbol):
-                    successful_adds.append(symbol)
-                    print(f"✅ Successfully processed {symbol}")
-                else:
-                    failed_adds.append(symbol)
-                    print(f"❌ Failed to process {symbol}")
-                    
-            except Exception as e:
-                print(f"❌ Error processing {symbol}: {e}")
-                failed_adds.append(symbol)
-            
-            # Progress indicator
-            progress = (i / len(symbols)) * 100
-            print(f"📊 Progress: {i}/{len(symbols)} ({progress:.1f}%)")
-        
-        # Summary
-        print("\n" + "=" * 60)
-        print("MULTIPLE SYMBOL ADDITION SUMMARY")
-        print("=" * 60)
-        
-        if successful_adds:
-            print(f"✅ Successfully added {len(successful_adds)} symbols:")
-            for symbol in successful_adds:
-                print(f"   • {symbol} (tables: {symbol}_5M, {symbol}_DAILY)")
-        
-        if failed_adds:
-            print(f"\n❌ Failed to add {len(failed_adds)} symbols:")
-            for symbol in failed_adds:
-                print(f"   • {symbol}")
-        
-        print(f"\n📊 Total: {len(successful_adds)} successful, {len(failed_adds)} failed")
-        
-        return successful_adds, failed_adds
+    except KeyboardInterrupt:
+        print("\nStopping data collection...")
 
-# Example usage
 if __name__ == "__main__":
-    yahoo_finance = WorkingYahooFinance()
-    
-    # Add single symbol
-    symbol = input("Enter stock symbol (e.g., INFY, RELIANCE, AAPL): ").strip()
-    if symbol:
-        yahoo_finance.add_single_symbol(symbol)
-    
-    # Or add multiple symbols
-    # symbols = ['INFY', 'TCS', 'RELIANCE', 'HDFCBANK']
-    # yahoo_finance.add_multiple_symbols(symbols)
+    symbol = input("Enter stock symbol (e.g., AAPL, NSEI, RELIANCE): ").strip().upper()
+    print(f"\nStarting data collection for {symbol} (Ctrl+C to stop)...")
+    main_loop(symbol)

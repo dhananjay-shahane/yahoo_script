@@ -61,8 +61,8 @@ class MarketUtils:
         symbol = symbol.upper().strip()
 
         # Check if it's a known Indian index
-        if symbol in self.INDIAN_INDICES:
-            return self.INDIAN_INDICES[symbol]
+        if symbol in INDIAN_INDICES:
+            return INDIAN_INDICES[symbol]
 
         # If already looks valid (like AAPL, ^NSEI, TSLA.BA), return as-is
         if '.' in symbol or symbol.startswith("^"):
@@ -98,4 +98,3 @@ class MarketUtils:
 
         print(f"❌ Symbol '{symbol}' is invalid or not available")
         return None
-```
