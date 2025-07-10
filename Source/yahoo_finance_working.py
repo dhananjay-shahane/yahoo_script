@@ -55,6 +55,35 @@ def is_market_open():
 
     return now.weekday() < 5 and market_open <= now.time() <= market_close
 
+def process_market_data(df):
+    """
+    Process market data by:
+    1. Converting timestamps to IST (UTC+5:30)
+    2. Reversing row order so most recent is last
+    
+    Args:
+        df: DataFrame with 'datetime' column containing UTC timestamps
+        
+    Returns:
+        Processed DataFrame
+    """
+    if df.empty:
+        return df
+    
+    # Make a copy to avoid modifying original
+    df = df.copy()
+    
+    # Convert to datetime if not already
+    df['datetime'] = pd.to_datetime(df['datetime'])
+    
+    # Convert UTC to IST (UTC+5:30)
+    df['datetime'] = df['datetime'] + timedelta(hours=5, minutes=30)
+    
+    # Reverse row order so most recent is last (bottom of table)
+    df = df.iloc[::-1].reset_index(drop=True)
+    
+    return df
+
 def fetch_new_data(symbol, minutes_back=5, interval='5m'):
     """Fetch recent market data for a symbol with fallback if market is closed"""
     try:
@@ -84,6 +113,10 @@ def fetch_new_data(symbol, minutes_back=5, interval='5m'):
         new_data = new_data[['Open', 'High', 'Low', 'Close', 'Volume']]
         new_data.index.name = 'datetime'
         new_data.reset_index(inplace=True)
+        
+        # Process the market data (convert to IST and reverse order)
+        new_data = process_market_data(new_data)
+        
         return new_data
 
     except Exception as e:

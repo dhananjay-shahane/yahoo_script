@@ -28,32 +28,38 @@ MARKET_CONFIG = {
 }
 
 # Data collection configuration
+# fetching_time_interval: How often to make requests to Yahoo Finance (in seconds)
+# time_period: The granularity of data (5m, 1h, 1d, etc.)
 CONFIG = {
     'intraday': {
-        'fetch_interval': 300,  # 5 minutes (in seconds)
-        'request_period': '7d',  # Request 7 days of historical data
-        'data_interval': '5m',  # 5-minute interval data
+        'fetching_time_interval': 300,  # How often to fetch data (5 minutes in seconds)
+        'time_period': '5m',           # Data granularity (5-minute candles)
+        'request_period': '7d',        # Historical data range to request
         'table_suffix': '_intraday',
         'display_name': 'Intraday (5m)'
     },
     'daily': {
-        'fetch_interval': 86400,  # 24 hours (in seconds)
-        'request_period': '1mo',  # Request 1 month of historical data
-        'data_interval': '1d',  # Daily interval data
+        'fetching_time_interval': 86400,  # How often to fetch data (24 hours in seconds)
+        'time_period': '1d',             # Data granularity (daily candles)
+        'request_period': '1mo',         # Historical data range to request
         'table_suffix': '_daily',
         'display_name': 'Daily'
     }
 }
 
 # Data configuration (for compatibility)
+# fetching_time_interval: How often to make requests (in seconds)
+# time_period: The granularity of data requested from Yahoo Finance
 DATA_CONFIG = {
     '5M': {
-        'interval': '5m',
+        'fetching_time_interval': 300,  # Fetch every 5 minutes
+        'time_period': '5m',           # 5-minute candles
         'table_suffix': '_5M',
         'display_name': '5-minute'
     },
     'DAILY': {
-        'interval': '1d',
+        'fetching_time_interval': 86400,  # Fetch every 24 hours
+        'time_period': '1d',             # Daily candles
         'table_suffix': '_DAILY',
         'display_name': 'Daily'
     }

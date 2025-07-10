@@ -24,13 +24,13 @@ class StockDataManager:
         """Update data for a specific symbol and time period"""
         print(f"\n🔄 Processing {symbol} ({time_period})")
         
-        # Determine table name and interval
+        # Determine table name and data interval
         if time_period == '5M':
             table_name = f"{symbol}_5M"
-            interval = '5m'
+            data_interval = '5m'  # This is the granularity of data (5-minute candles)
         elif time_period == 'DAILY':
             table_name = f"{symbol}_DAILY"
-            interval = '1d'
+            data_interval = '1d'  # This is the granularity of data (daily candles)
         else:
             print(f"❌ Invalid time period: {time_period}")
             return
@@ -56,9 +56,9 @@ class StockDataManager:
             print(f"📅 No existing data - fetching initial data")
         
         # Fetch new data with error handling
-        print(f"🔄 Fetching {time_period} data for {symbol}...")
+        print(f"🔄 Fetching {time_period} data for {symbol} (data_interval: {data_interval})...")
         try:
-            new_data = self.data_fetcher.fetch_data_by_period(symbol, interval, last_datetime)
+            new_data = self.data_fetcher.fetch_data_by_period(symbol, data_interval, last_datetime)
             
             if not new_data.empty:
                 print(f"✅ Found {len(new_data)} new records")
@@ -105,8 +105,14 @@ class StockDataManager:
             print(f"\nProcessing {symbol} for {time_period} data...")
             self.update_symbol_data(symbol, time_period)
     
-    def run_continuous_updates(self, fetching_interval_5m=300, fetching_interval_daily=3600):
-        """Run continuous updates for both 5-minute and daily data"""
+    def run_continuous_updates(self, fetching_time_interval_5m=300, fetching_time_interval_daily=3600):
+        """
+        Run continuous updates for both 5-minute and daily data
+        
+        Args:
+            fetching_time_interval_5m: How often to fetch 5-minute data (in seconds)
+            fetching_time_interval_daily: How often to fetch daily data (in seconds)
+        """
         last_daily_update = datetime.min.replace(tzinfo=INDIA_TZ)
         cycle_count = 0
         
@@ -114,15 +120,17 @@ class StockDataManager:
             print("="*80)
             print("STARTING CONTINUOUS DATA COLLECTION")
             print("="*80)
-            print(f"5-minute data interval: {fetching_interval_5m} seconds ({fetching_interval_5m//60} minutes)")
-            print(f"Daily data interval: {fetching_interval_daily} seconds ({fetching_interval_daily//60} minutes)")
-            print(f"Market hours: 09:00 - 15:30 IST (Mon-Fri)")
-            print(f"Current time: {datetime.now(INDIA_TZ).strftime('%Y-%m-%d %H:%M:%S IST')}")
+            print(f"📊 Configuration:")
+            print(f"   • 5-minute data fetching interval: {fetching_time_interval_5m} seconds ({fetching_time_interval_5m//60} minutes)")
+            print(f"   • Daily data fetching interval: {fetching_time_interval_daily} seconds ({fetching_time_interval_daily//60} minutes)")
+            print(f"   • Market hours: 09:15 - 15:30 IST (Mon-Fri)")
+            print(f"   • Data processing: UTC→IST conversion, most recent data at bottom")
+            print(f"   • Current time: {datetime.now(INDIA_TZ).strftime('%Y-%m-%d %H:%M:%S IST')}")
             
             # Get list of tables
             tables_5m = self.db_manager.get_tables_by_time_period('5M')
             tables_daily = self.db_manager.get_tables_by_time_period('DAILY')
-            print(f"Monitoring {len(tables_5m)} 5-minute tables and {len(tables_daily)} daily tables")
+            print(f"📋 Monitoring {len(tables_5m)} 5-minute tables and {len(tables_daily)} daily tables")
             print("="*80)
             
             while True:
@@ -137,24 +145,24 @@ class StockDataManager:
                 
                 # Update 5-minute data (only during market hours)
                 if is_market_open:
-                    print("📈 Updating 5-minute data...")
+                    print("📈 Updating 5-minute data (time_period: 5m)...")
                     self.update_tables_by_period('5M')
                 else:
                     print("🔒 Market closed - skipping 5-minute updates")
                 
                 # Update daily data (less frequently)
                 time_since_daily = (current_time - last_daily_update).total_seconds()
-                if time_since_daily >= fetching_interval_daily:
-                    print("📊 Updating daily data...")
+                if time_since_daily >= fetching_time_interval_daily:
+                    print("📊 Updating daily data (time_period: 1d)...")
                     self.update_tables_by_period('DAILY')
                     last_daily_update = current_time
                 else:
-                    remaining_daily = (fetching_interval_daily - time_since_daily) // 60
+                    remaining_daily = (fetching_time_interval_daily - time_since_daily) // 60
                     print(f"📊 Next daily update in {remaining_daily:.0f} minutes")
                 
-                print(f"\n💤 Waiting {fetching_interval_5m} seconds until next cycle...")
-                print(f"⏰ Next update at: {(current_time + timedelta(seconds=fetching_interval_5m)).strftime('%H:%M:%S')}")
-                time.sleep(fetching_interval_5m)
+                print(f"\n💤 Waiting {fetching_time_interval_5m} seconds until next cycle...")
+                print(f"⏰ Next update at: {(current_time + timedelta(seconds=fetching_time_interval_5m)).strftime('%H:%M:%S')}")
+                time.sleep(fetching_time_interval_5m)
                 
         except KeyboardInterrupt:
             print("\n" + "="*80)
