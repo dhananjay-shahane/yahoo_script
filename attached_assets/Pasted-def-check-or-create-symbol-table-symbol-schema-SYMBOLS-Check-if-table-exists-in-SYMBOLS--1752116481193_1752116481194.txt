@@ -1,0 +1,69 @@
+def check_or_create_symbol_table(symbol,schema='SYMBOLS'):
+    """Check if table exists in SYMBOLS schema, create if not"""
+    conn = create_db_connection()
+    if conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(f'CREATE SCHEMA IF NOT EXISTS "{schema}";')
+            print(f"Ensured schema '{schema}' exists.")
+            
+
+            symbol_upper = symbol.upper()
+            # First check if a table symbol_upper exists in SYMBOLS schema
+            SYMBOLS_SCHEMA_TABLES = load_existing_schema_tables(schema_name=schema)
+            if symbol_upper in [t.upper() for t in SYMBOLS_SCHEMA_TABLES]:
+                # Verify the table actually exists in SYMBOLS schema
+                cur.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM SYMBOLS.tables 
+                        WHERE table_schema = schema
+                        AND table_name = %s
+                    );
+                """, (symbol.upper(),))
+                
+                if cur.fetchone()[0]:
+                    table_name = f'symbols."{symbol.upper()}"'
+                    print(f"Using existing table {table_name}")
+                    return table_name
+                else:
+                    print(f"Table {symbol.upper()} not found in symbols schema")
+            
+            # Check public schema for existing symbol table
+            table_name = f'{symbol.upper()}'
+            cur.execute("""
+                SELECT EXISTS (
+                    SELECT FROM SYMBOLS.tables 
+                    WHERE table_schema = 'SYMBOLS' 
+                    AND table_name = %s
+                );
+            """, (f"symbol_{symbol.upper()}",))
+            
+            table_exists = cur.fetchone()[0]
+            
+            if not table_exists:
+                # Create new table in public schema with standard structure
+                cur.execute(f"""
+                    CREATE TABLE {table_name} (
+                        datetime TIMESTAMP WITH TIME ZONE PRIMARY KEY,
+                        open DOUBLE PRECISION,
+                        high DOUBLE PRECISION,
+                        low DOUBLE PRECISION,
+                        close DOUBLE PRECISION,
+                        volume DOUBLE PRECISION
+                    );
+                    CREATE INDEX idx_symbol_{symbol.upper()}_datetime ON {table_name} (datetime);
+                """)
+                conn.commit()
+                print(f"Created new table {table_name}")
+            else:
+                print(f"Using existing table {table_name}")
+                
+            return table_name
+                
+        except Exception as e:
+            print(f"Error checking/creating table for {symbol}: {e}")
+            conn.rollback()
+            return None
+        finally:
+            conn.close()
+    return None
