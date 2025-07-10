@@ -55,26 +55,33 @@ class StockDataManager:
         else:
             print(f"📅 No existing data - fetching initial data")
         
-        # Fetch new data
+        # Fetch new data with error handling
         print(f"🔄 Fetching {time_period} data for {symbol}...")
-        new_data = self.data_fetcher.fetch_data_by_period(symbol, interval, last_datetime)
-        
-        if not new_data.empty:
-            print(f"✅ Found {len(new_data)} new records")
+        try:
+            new_data = self.data_fetcher.fetch_data_by_period(symbol, interval, last_datetime)
             
-            # Save to database
-            rows_inserted = self.db_manager.save_data_to_db(full_table_name, new_data)
-            if rows_inserted > 0:
-                print(f"💾 Saved {rows_inserted} new records to database")
+            if not new_data.empty:
+                print(f"✅ Found {len(new_data)} new records")
+                
+                # Save to database
+                rows_inserted = self.db_manager.save_data_to_db(full_table_name, new_data)
+                if rows_inserted > 0:
+                    print(f"💾 Saved {rows_inserted} new records to database")
+                
+                # Display latest data
+                self.db_manager.display_latest_data(full_table_name, symbol, 5)
+            else:
+                print(f"ℹ️  No new data available for {symbol}")
+                # Still show existing data if any
+                self.db_manager.display_latest_data(full_table_name, symbol, 3)
             
-            # Display latest data
-            self.db_manager.display_latest_data(full_table_name, symbol, 5)
-        else:
-            print(f"ℹ️  No new data available for {symbol}")
+            print(f"✅ Completed {symbol} ({time_period})")
+            
+        except Exception as e:
+            print(f"⚠️  Error fetching data for {symbol} ({time_period}): {e}")
+            print(f"📋 Table {full_table_name} exists and ready for data")
             # Still show existing data if any
             self.db_manager.display_latest_data(full_table_name, symbol, 3)
-        
-        print(f"✅ Completed {symbol} ({time_period})")
     
     def update_tables_by_period(self, time_period='5M'):
         """Update all tables for a specific time period"""
@@ -197,37 +204,62 @@ class StockDataManager:
         """Add a new symbol to the system with proper table creation"""
         print(f"Adding new symbol: {symbol}")
         
-        # Validate symbol first
-        yahoo_symbol = self.market_utils.get_yahoo_symbol(symbol)
-        if not yahoo_symbol:
-            print(f"❌ Invalid symbol: {symbol}")
-            return False
-        
-        print(f"✅ Validated symbol: {symbol} -> {yahoo_symbol}")
-        
-        # Create tables for both time periods
+        # Create tables for both time periods FIRST (regardless of symbol validation)
         print(f"📋 Creating tables for {symbol}...")
         table_5m = self.db_manager.check_or_create_symbol_table(f"{symbol}_5M")
         table_daily = self.db_manager.check_or_create_symbol_table(f"{symbol}_DAILY")
         
-        if table_5m and table_daily:
-            print(f"✅ Successfully created tables for {symbol}")
-            print(f"   • 5-minute table: {table_5m}")
-            print(f"   • Daily table: {table_daily}")
-            
-            # Fetch initial data for both tables
-            print(f"📊 Fetching initial data for {symbol}...")
-            try:
-                self.update_symbol_data(symbol, '5M')
-                self.update_symbol_data(symbol, 'DAILY')
-                print(f"✅ Successfully added {symbol} to the system with initial data")
-                return True
-            except Exception as e:
-                print(f"⚠️  Tables created but error fetching initial data: {e}")
-                return True  # Tables are created, which is the main goal
-        else:
+        if not table_5m or not table_daily:
             print(f"❌ Failed to create tables for {symbol}")
             return False
+        
+        print(f"✅ Successfully created tables for {symbol}")
+        print(f"   • 5-minute table: {table_5m}")
+        print(f"   • Daily table: {table_daily}")
+        
+        # Now validate symbol and try to fetch data
+        print(f"🔍 Validating symbol: {symbol}")
+        yahoo_symbol = self.market_utils.get_yahoo_symbol(symbol)
+        if not yahoo_symbol:
+            print(f"⚠️  Symbol validation failed, but tables are created")
+            print(f"💡 You can manually check the symbol or data will be fetched when validation succeeds")
+            return True  # Tables are created, which is the main goal
+        
+        print(f"✅ Validated symbol: {symbol} -> {yahoo_symbol}")
+        
+        # Fetch initial data for both tables
+        print(f"📊 Fetching initial data for {symbol}...")
+        try:
+            # Try to fetch data, but don't fail if it doesn't work
+            data_fetched = False
+            
+            try:
+                self.update_symbol_data(symbol, 'DAILY')
+                data_fetched = True
+            except Exception as e:
+                print(f"⚠️  Could not fetch daily data: {e}")
+            
+            # Only try 5M data if market is open
+            if self.market_utils.is_market_open():
+                try:
+                    self.update_symbol_data(symbol, '5M')
+                    data_fetched = True
+                except Exception as e:
+                    print(f"⚠️  Could not fetch 5-minute data: {e}")
+            else:
+                print(f"🔒 Market closed - skipping 5-minute data fetch")
+            
+            if data_fetched:
+                print(f"✅ Successfully added {symbol} to the system with initial data")
+            else:
+                print(f"✅ Successfully added {symbol} to the system (tables created, data will be fetched later)")
+            
+            return True
+            
+        except Exception as e:
+            print(f"⚠️  Tables created but error fetching initial data: {e}")
+            print(f"💡 Data will be fetched during next update cycle")
+            return True  # Tables are created, which is the main goal
     
     def add_multiple_symbols(self, symbols):
         """Add multiple symbols to the system with improved rate limiting"""
