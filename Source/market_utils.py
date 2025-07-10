@@ -57,7 +57,7 @@ class MarketUtils:
         return False
 
     def get_yahoo_symbol(self, symbol):
-        """Convert symbol to Yahoo Finance format - simple approach without validation"""
+        """Convert symbol to Yahoo Finance format with basic validation"""
         symbol = symbol.strip().upper()
 
         # Step 1: Check if it's a known Indian index
