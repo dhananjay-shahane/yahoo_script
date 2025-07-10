@@ -67,9 +67,12 @@ class StockDataManager:
                 rows_inserted = self.db_manager.save_data_to_db(full_table_name, new_data)
                 if rows_inserted > 0:
                     print(f"💾 Saved {rows_inserted} new records to database")
-                
-                # Display latest data
-                self.db_manager.display_latest_data(full_table_name, symbol, 5)
+                    # Display latest data after successful insertion
+                    self.db_manager.display_latest_data(full_table_name, symbol, 5)
+                else:
+                    print(f"ℹ️  No new records inserted (data might already exist)")
+                    # Show existing data
+                    self.db_manager.display_latest_data(full_table_name, symbol, 3)
             else:
                 print(f"ℹ️  No new data available for {symbol}")
                 # Still show existing data if any
@@ -80,7 +83,44 @@ class StockDataManager:
         except Exception as e:
             print(f"⚠️  Error fetching data for {symbol} ({time_period}): {e}")
             print(f"📋 Table {full_table_name} exists and ready for data")
-            # Still show existing data if any
+            
+            # Try to fetch using period-based approach as fallback
+            print(f"🔄 Trying fallback data fetch for {symbol}...")
+            try:
+                import yfinance as yf
+                yahoo_symbol = self.market_utils.get_yahoo_symbol(symbol)
+                
+                if yahoo_symbol:
+                    ticker = yf.Ticker(yahoo_symbol)
+                    period = '1d' if data_interval == '5m' else '5d'
+                    fallback_data = ticker.history(period=period, interval=data_interval)
+                    
+                    if not fallback_data.empty:
+                        # Process fallback data
+                        fallback_data = fallback_data[['Open', 'High', 'Low', 'Close', 'Volume']].copy()
+                        fallback_data.reset_index(inplace=True)
+                        fallback_data.rename(columns={'Datetime': 'datetime'}, inplace=True)
+                        
+                        # Process the market data (convert to IST and reverse order)
+                        fallback_data = self.data_fetcher.process_market_data(fallback_data)
+                        
+                        # Filter out old data if we have last_datetime
+                        if last_datetime:
+                            fallback_data = fallback_data[fallback_data['datetime'] > last_datetime]
+                        
+                        if not fallback_data.empty:
+                            rows_inserted = self.db_manager.save_data_to_db(full_table_name, fallback_data)
+                            print(f"✅ Fallback: Saved {rows_inserted} new records")
+                            self.db_manager.display_latest_data(full_table_name, symbol, 5)
+                        else:
+                            print(f"ℹ️  Fallback: No new data after filtering")
+                    else:
+                        print(f"⚠️  Fallback: No data available")
+                        
+            except Exception as fallback_error:
+                print(f"⚠️  Fallback fetch also failed: {fallback_error}")
+            
+            # Always show existing data if any
             self.db_manager.display_latest_data(full_table_name, symbol, 3)
     
     def update_tables_by_period(self, time_period='5M'):

@@ -57,44 +57,27 @@ class MarketUtils:
         return False
 
     def get_yahoo_symbol(self, symbol):
-        """Get the correct Yahoo Finance symbol for a given stock symbol"""
-        symbol = symbol.upper().strip()
+        """Convert symbol to Yahoo Finance format with validation"""
+        symbol = symbol.strip().upper()
 
-        # Check if it's a known Indian index
+        # Step 1: Check if it's a known Indian index
         if symbol in INDIAN_INDICES:
-            return INDIAN_INDICES[symbol]
+            yahoo_symbol = INDIAN_INDICES[symbol]
+            print(f"📊 Using mapped Indian index: {symbol} -> {yahoo_symbol}")
+            return yahoo_symbol
 
-        # If already looks valid (like AAPL, ^NSEI, TSLA.BA), return as-is
+        # Step 2: If already looks valid (like AAPL, ^NSEI, TSLA.BA), return as-is
         if '.' in symbol or symbol.startswith("^"):
+            print(f"🔍 Symbol appears pre-formatted: {symbol}")
             return symbol
 
-        # Try different variations with simpler validation
-        variations = [
-            f"{symbol}.NS",  # NSE
-            symbol,          # International
-            f"{symbol}.BO"   # BSE
-        ]
-
-        for variation in variations:
-            exchange = "NSE" if variation.endswith(".NS") else "BSE" if variation.endswith(".BO") else "international"
-            print(f"🔍 Checking {exchange}: {variation}")
-            try:
-                ticker = yf.Ticker(variation)
-                # Try a simple 1-day history check with minimal data
-                hist = ticker.history(period="1d", interval="1d")
-                if not hist.empty and len(hist) > 0:
-                    print(f"✅ Found valid symbol: {variation}")
-                    return variation
-                else:
-                    print(f"❌ No data available for {variation}")
-            except Exception as e:
-                print(f"❌ Error checking {variation}: {str(e)[:50]}...")
-
-        # If all variations fail, return the most likely one for Indian stocks
-        if symbol in ['INFY', 'TCS', 'RELIANCE', 'HDFCBANK', 'ICICIBANK', 'WIPRO', 'BHARTIARTL', 'SBIN', 'ITC', 'KOTAKBANK']:
+        # Step 3: For Indian stocks, directly use .NS format (most common)
+        # Skip validation to avoid API issues during market hours
+        if symbol.isalpha() and len(symbol) <= 10:  # Likely Indian stock
             preferred_symbol = f"{symbol}.NS"
-            print(f"⚠️  Using preferred Indian symbol: {preferred_symbol} (validation failed but symbol is likely correct)")
+            print(f"🔍 Using Indian stock format: {symbol} -> {preferred_symbol}")
             return preferred_symbol
 
-        print(f"❌ Symbol '{symbol}' is invalid or not available")
-        return None
+        # Step 4: For international stocks, return as-is
+        print(f"🔍 Using international format: {symbol}")
+        return symbol

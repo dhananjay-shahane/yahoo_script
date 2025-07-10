@@ -1,4 +1,3 @@
-
 """
 Configuration settings for the stock data collection system
 """
@@ -44,20 +43,20 @@ MARKET_CONFIG = {
 
 DATA_CONFIG = {
     '5M': {
-        'fetching_time_interval': 300,    # Fetch every 5 minutes (300 seconds)
-        'time_period': '5m',              # Request 5-minute candles
-        'request_period': '7d',           # Historical data range to request
+        'fetching_time_interval': 300,    # How often to make requests (5 minutes)
+        'time_period': '5m',              # Data granularity (5-minute candles)
+        'min_throttle_seconds': 30,       # Minimum time between requests per symbol (reduced)
         'table_suffix': '_5M',
         'display_name': '5-minute',
-        'min_throttle_seconds': 60        # Minimum 60 seconds between requests per symbol
+        'description': 'Focus on 5-minute data during market hours'
     },
     'DAILY': {
-        'fetching_time_interval': 3600,   # Fetch every hour (3600 seconds) - less frequent for daily data
-        'time_period': '1d',              # Request daily candles
-        'request_period': '1mo',          # Historical data range to request
+        'fetching_time_interval': 3600,   # How often to make requests (1 hour)
+        'time_period': '1d',              # Data granularity (daily candles)
+        'min_throttle_seconds': 120,      # Minimum time between requests per symbol (reduced)
         'table_suffix': '_DAILY',
         'display_name': 'Daily',
-        'min_throttle_seconds': 300       # Minimum 5 minutes between requests per symbol
+        'description': 'Daily data updates (less frequent)'
     }
 }
 

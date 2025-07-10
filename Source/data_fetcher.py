@@ -224,7 +224,7 @@ class DataFetcher:
 
             # Rate limiting: Add delay to avoid hitting API limits
             config = DATA_CONFIG.get('5M' if time_period == '5m' else 'DAILY', {})
-            min_throttle = config.get('min_throttle_seconds', 60)
+            min_throttle = config.get('min_throttle_seconds', 30)  # Reduced from 60 to 30
             
             # Check throttling for this symbol
             current_time = time.time()
@@ -238,7 +238,7 @@ class DataFetcher:
             self.last_request_time[symbol] = current_time
             
             # Add base delay between requests
-            time.sleep(3)
+            time.sleep(2)  # Reduced from 3 to 2
 
             stock = yf.Ticker(yahoo_symbol)
             print(f"📡 Fetching {time_period} data for {yahoo_symbol} (original: {symbol})")
@@ -251,13 +251,15 @@ class DataFetcher:
 
                 # Fetch 5-minute data during market hours
                 if last_datetime:
-                    start_date = last_datetime
+                    # Start from last datetime
+                    start_date = last_datetime - timedelta(minutes=5)  # Small overlap to ensure no gaps
                     end_date = datetime.now(INDIA_TZ)
                 else:
+                    # Fetch initial data - get more data for better coverage
                     end_date = datetime.now(INDIA_TZ)
-                    start_date = end_date - timedelta(minutes=30)  # Last 30 minutes
+                    start_date = end_date - timedelta(hours=2)  # Last 2 hours instead of 30 minutes
 
-                print(f"📊 Fetching 5-minute candles from {start_date.strftime('%H:%M')} to {end_date.strftime('%H:%M')}")
+                print(f"📊 Fetching 5-minute candles from {start_date.strftime('%Y-%m-%d %H:%M')} to {end_date.strftime('%Y-%m-%d %H:%M')}")
 
                 # Fetch with retry logic
                 new_data = self._fetch_with_retry(stock, start_date, end_date, '5m', yahoo_symbol)
@@ -265,11 +267,13 @@ class DataFetcher:
             elif time_period == '1d':
                 # Fetch daily data (less frequent, can be done anytime)
                 if last_datetime:
-                    start_date = last_datetime.date()
+                    # Start from last datetime
+                    start_date = last_datetime.date() - timedelta(days=1)  # Small overlap
                     end_date = datetime.now(INDIA_TZ).date()
                 else:
+                    # Fetch initial data - get more historical data
                     end_date = datetime.now(INDIA_TZ).date()
-                    start_date = end_date - timedelta(days=7)  # Last 7 days
+                    start_date = end_date - timedelta(days=30)  # Last 30 days instead of 7
 
                 print(f"📊 Fetching daily candles from {start_date} to {end_date}")
 
@@ -306,11 +310,15 @@ class DataFetcher:
     def _fetch_with_retry(self, stock, start_date, end_date, interval, symbol):
         """Fetch data with retry logic and rate limit handling"""
         max_retries = 3
-        retry_delays = [5, 10, 15]  # Progressive delays
+        retry_delays = [10, 30, 60]  # Longer delays to handle network issues
         
         for attempt in range(max_retries):
             try:
                 print(f"   📡 Attempt {attempt + 1}/{max_retries} for {symbol}")
+                
+                # Add timeout and better error handling
+                import socket
+                socket.setdefaulttimeout(30)  # 30 second timeout
                 
                 data = stock.history(start=start_date, end=end_date, interval=interval)
                 
@@ -321,13 +329,20 @@ class DataFetcher:
                     print(f"   ⚠️  No data returned on attempt {attempt + 1}")
                     
             except Exception as e:
-                error_msg = str(e)
-                if "429" in error_msg or "Too Many Requests" in error_msg:
+                error_msg = str(e).lower()
+                
+                if "429" in error_msg or "too many requests" in error_msg:
                     print(f"   ❌ Rate limit hit on attempt {attempt + 1}")
-                    wait_time = 20 + (attempt * 10)  # Longer wait for rate limits
+                    wait_time = 60 + (attempt * 30)  # Much longer wait for rate limits
+                elif "expecting value" in error_msg or "json" in error_msg:
+                    print(f"   ❌ API response error on attempt {attempt + 1}: Invalid JSON")
+                    wait_time = 20 + (attempt * 10)  # Network/API issues
+                elif "timeout" in error_msg or "connection" in error_msg:
+                    print(f"   ❌ Connection timeout on attempt {attempt + 1}")
+                    wait_time = 15 + (attempt * 5)  # Connection issues
                 else:
                     print(f"   ❌ Attempt {attempt + 1} failed: {e}")
-                    wait_time = retry_delays[attempt] if attempt < len(retry_delays) else 15
+                    wait_time = retry_delays[attempt] if attempt < len(retry_delays) else 60
 
                 if attempt < max_retries - 1:
                     print(f"   ⏳ Retrying in {wait_time} seconds...")
